@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Celine Pool Villa — Cha-Am, Thailand</title>
+
     <meta name="description"
         content="Celine Pool Villa — a private collection of connected villas in Cha-Am, Thailand.">
 
@@ -19,24 +20,69 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
+
 <body>
 
     <!-- NAVIGATION -->
+
     <nav class="navbar">
 
         <a href="#overview" class="nav-logo">
             CELINE POOL VILLA
         </a>
 
+
         <div class="nav-links">
-            <a href="#overview">Overview</a>
-            <a href="#villa">The Villas</a>
-            <a href="#rooms">Rooms</a>
-            <a href="#pool">Pool</a>
-            <a href="#experience">Experience</a>
-            <a href="#location">Location</a>
-            <a href="#contact">Contact</a>
+
+            <a href="#overview" data-i18n="navOverview">
+                Overview
+            </a>
+
+            <a href="#villa" data-i18n="navVilla">
+                The Villas
+            </a>
+
+            <a href="#rooms" data-i18n="navRooms">
+                Rooms
+            </a>
+
+            <a href="#pool" data-i18n="navPool">
+                Pool
+            </a>
+
+            <a href="#experience" data-i18n="navExperience">
+                Experience
+            </a>
+
+            <a href="#location" data-i18n="navLocation">
+                Location
+            </a>
+
+            <a href="#contact" data-i18n="navContact">
+                Contact
+            </a>
+
         </div>
+
+
+        <!-- LANGUAGE SWITCH -->
+
+        <div class="language-switch">
+
+            <button class="language-btn active" data-lang="en">
+                EN
+            </button>
+
+            <span>/</span>
+
+            <button class="language-btn" data-lang="th">
+                TH
+            </button>
+
+        </div>
+
+
+        <!-- MOBILE MENU -->
 
         <button class="menu-toggle" aria-label="Open menu">
             <span></span>
@@ -46,70 +92,101 @@
     </nav>
 
 
+
     <!-- HERO -->
+
     <header class="hero" id="overview">
 
         <img src="assets/images/hero.webp" alt="Celine Pool Villa" class="hero-image">
 
         <div class="hero-overlay"></div>
 
+
         <div class="hero-content">
 
-            <p class="eyebrow">
+            <p class="eyebrow" data-i18n="heroEyebrow">
                 PRIVATE POOL VILLAS · CHA-AM, THAILAND
             </p>
 
-            <h1>
+
+            <h1 data-i18n="heroTitle">
                 Celine<br>
                 <em>Pool Villa</em>
             </h1>
 
+
             <div class="hero-details">
-                <span>Cha-Am, Thailand</span>
+
+                <span data-i18n="heroLocation">
+                    Cha-Am, Thailand
+                </span>
 
                 <span class="detail-line"></span>
 
-                <span>Private Pool · 5 Bedrooms</span>
+                <span data-i18n="heroDetails">
+                    Private Pool · 5 Bedrooms
+                </span>
+
             </div>
 
         </div>
 
+
         <div class="scroll-indicator">
-            <span>Scroll to explore</span>
+
+            <span data-i18n="scroll">
+                Scroll to explore
+            </span>
+
             <div class="scroll-line"></div>
+
         </div>
 
     </header>
 
 
+
     <main>
 
-        <!-- INTRO -->
+
+        <!-- THE VILLAS -->
+
         <section class="intro section" id="villa">
 
             <div class="intro-label reveal">
-                <span>01</span>
-                <span>THE VILLAS</span>
+
+                <span>
+                    01
+                </span>
+
+                <span data-i18n="villaLabel">
+                    THE VILLAS
+                </span>
+
             </div>
+
 
             <div class="intro-content reveal">
 
-                <p class="eyebrow">
+                <p class="eyebrow" data-i18n="villaEyebrow">
                     A PRIVATE ESCAPE
                 </p>
 
-                <h2>
+
+                <h2 data-i18n="villaTitle">
                     More space.<br>
                     More freedom.<br>
                     <em>More Thailand.</em>
                 </h2>
 
-                <p class="intro-text">
+
+                <p class="intro-text" data-i18n="villaText1">
                     Celine Pool Villa is a private collection of connected
                     villas in the heart of Cha-Am.
                 </p>
 
-                <p class="intro-text">
+
+                <p class="intro-text" data-i18n="villaText2">
                     Several individual villa spaces come together around
                     open gardens, outdoor areas and a private pool —
                     creating a relaxed setting where family and friends
@@ -121,7 +198,9 @@
         </section>
 
 
+
         <!-- VILLA IMAGE -->
+
         <section class="visual-section">
 
             <div class="large-image reveal-image">
@@ -130,15 +209,25 @@
 
             </div>
 
+
             <div class="image-caption">
-                <span>01 / 06</span>
-                <span>THE VILLAS</span>
+
+                <span>
+                    01 / 06
+                </span>
+
+                <span data-i18n="villaLabel">
+                    THE VILLAS
+                </span>
+
             </div>
 
         </section>
 
 
+
         <!-- ROOMS -->
+
         <section class="split-section section" id="rooms">
 
             <div class="split-image reveal-image">
@@ -147,48 +236,77 @@
 
             </div>
 
+
             <div class="split-content reveal">
 
                 <div class="section-number">
                     02
                 </div>
 
-                <p class="eyebrow">
+
+                <p class="eyebrow" data-i18n="roomsEyebrow">
                     ROOMS & LIVING
                 </p>
 
-                <h2>
+
+                <h2 data-i18n="roomsTitle">
                     Room to stay.
                     <em>Space to live.</em>
                 </h2>
 
-                <p>
+
+                <p data-i18n="roomsText1">
                     With five bedrooms and five bathrooms, Celine Pool
                     Villa is made for groups who want to stay together
                     without feeling crowded.
                 </p>
 
-                <p class="secondary-text">
+
+                <p class="secondary-text" data-i18n="roomsText2">
                     The different villa spaces give everyone a place
                     to retreat, while the open areas naturally bring
                     the group back together.
                 </p>
 
+
                 <div class="feature-list">
 
                     <div>
-                        <span>05</span>
-                        <p>Bedrooms</p>
+
+                        <span>
+                            05
+                        </span>
+
+                        <p data-i18n="bedrooms">
+                            Bedrooms
+                        </p>
+
                     </div>
 
-                    <div>
-                        <span>05</span>
-                        <p>Bathrooms</p>
-                    </div>
 
                     <div>
-                        <span>17</span>
-                        <p>Guests</p>
+
+                        <span>
+                            05
+                        </span>
+
+                        <p data-i18n="bathrooms">
+                            Bathrooms
+                        </p>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            17
+                        </span>
+
+                        <p data-i18n="guests">
+                            Guests
+                        </p>
+
                     </div>
 
                 </div>
@@ -198,30 +316,37 @@
         </section>
 
 
+
         <!-- POOL -->
+
         <section class="full-image-section section" id="pool">
 
             <img src="assets/images/pool.webp" alt="Private pool at Celine Pool Villa" class="background-image">
 
+
             <div class="full-image-overlay"></div>
+
 
             <div class="full-image-content reveal">
 
-                <p class="eyebrow">
+                <p class="eyebrow" data-i18n="poolEyebrow">
                     03 · PRIVATE POOL
                 </p>
 
-                <h2>
+
+                <h2 data-i18n="poolTitle">
                     Made for long
                     <em>afternoons.</em>
                 </h2>
 
-                <p>
+
+                <p data-i18n="poolText1">
                     The private pool sits at the heart of the property,
                     surrounded by open outdoor space and tropical greenery.
                 </p>
 
-                <p>
+
+                <p data-i18n="poolText2">
                     Swim, relax, gather around the table or simply let
                     the afternoon disappear.
                 </p>
@@ -231,33 +356,39 @@
         </section>
 
 
+
         <!-- EXPERIENCE -->
+
         <section class="lifestyle section" id="experience">
 
             <div class="lifestyle-heading reveal">
 
-                <p class="eyebrow">
+                <p class="eyebrow" data-i18n="experienceEyebrow">
                     THE EXPERIENCE
                 </p>
 
-                <h2>
+
+                <h2 data-i18n="experienceTitle">
                     Together,<br>
                     without being
                     <em>on top of each other.</em>
                 </h2>
 
-                <p class="experience-text">
+
+                <p class="experience-text" data-i18n="experienceText1">
                     What makes Celine different is the way the property
                     comes together.
                 </p>
 
-                <p class="experience-text">
+
+                <p class="experience-text" data-i18n="experienceText2">
                     Separate villa spaces open into shared gardens and
                     outdoor areas, creating a natural flow between
                     privacy and togetherness.
                 </p>
 
             </div>
+
 
             <div class="lifestyle-grid">
 
@@ -266,6 +397,7 @@
                     <img src="assets/images/living.webp" alt="Living area at Celine Pool Villa">
 
                 </div>
+
 
                 <div class="lifestyle-image reveal-image">
 
@@ -278,7 +410,9 @@
         </section>
 
 
+
         <!-- LOCATION -->
+
         <section class="location-section section" id="location">
 
             <div class="location-content reveal">
@@ -287,46 +421,75 @@
                     04
                 </div>
 
-                <p class="eyebrow">
+
+                <p class="eyebrow" data-i18n="locationEyebrow">
                     LOCATION
                 </p>
 
-                <h2>
+
+                <h2 data-i18n="locationTitle">
                     The beach
                     <em>is just minutes away.</em>
                 </h2>
 
-                <p>
+
+                <p data-i18n="locationText1">
                     Set along Chao Lai Soi 3 in Cha-Am, Celine Pool Villa
                     places you close to the coast while keeping the
                     atmosphere calm and private.
                 </p>
 
-                <p class="secondary-text">
+
+                <p class="secondary-text" data-i18n="locationText2">
                     Cha-Am Beach is just a short walk away, with restaurants,
                     local shops and everyday essentials nearby.
                 </p>
 
+
                 <div class="location-list">
 
                     <div>
-                        <span>05 min</span>
-                        <p>Cha-Am Beach</p>
+
+                        <span>
+                            05 min
+                        </span>
+
+                        <p data-i18n="beach">
+                            Cha-Am Beach
+                        </p>
+
                     </div>
 
-                    <div>
-                        <span>10 min</span>
-                        <p>Cha-Am Centre</p>
-                    </div>
 
                     <div>
-                        <span>15 min</span>
-                        <p>Local attractions</p>
+
+                        <span>
+                            10 min
+                        </span>
+
+                        <p data-i18n="centre">
+                            Cha-Am Centre
+                        </p>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            15 min
+                        </span>
+
+                        <p data-i18n="attractions">
+                            Local attractions
+                        </p>
+
                     </div>
 
                 </div>
 
             </div>
+
 
             <div class="location-image reveal-image">
 
@@ -337,20 +500,25 @@
         </section>
 
 
+
         <!-- FINAL IMAGE -->
+
         <section class="final-image">
 
             <img src="assets/images/sunset.webp" alt="Thailand sunset">
 
+
             <div class="final-overlay"></div>
+
 
             <div class="final-content reveal">
 
-                <p class="eyebrow">
+                <p class="eyebrow" data-i18n="finalEyebrow">
                     YOUR CHA-AM ESCAPE
                 </p>
 
-                <h2>
+
+                <h2 data-i18n="finalTitle">
                     Come together.<br>
                     <em>Stay awhile.</em>
                 </h2>
@@ -360,41 +528,63 @@
         </section>
 
 
+
         <!-- CONTACT -->
+
         <section class="contact section" id="contact">
 
             <div class="contact-top reveal">
 
-                <p class="eyebrow">
+                <p class="eyebrow" data-i18n="contactEyebrow">
                     05 · CONTACT
                 </p>
 
-                <h2>
+
+                <h2 data-i18n="contactTitle">
                     Make Celine
                     <em>your next escape.</em>
                 </h2>
 
-                <p>
+
+                <p data-i18n="contactText1">
                     Planning a stay in Cha-Am?
                 </p>
 
-                <p>
+
+                <p data-i18n="contactText2">
                     Get in touch to learn more about Celine Pool Villa,
                     availability and the property.
                 </p>
 
+
                 <a href="https://www.facebook.com/profile.php?id=61566361989612" target="_blank" class="contact-button">
-                    Get in touch
-                    <span>↗</span>
+
+                    <span data-i18n="contactButton">
+                        Get in touch
+                    </span>
+
+                    <span>
+                        ↗
+                    </span>
+
                 </a>
 
             </div>
 
+
             <div class="contact-bottom">
 
-                <span>CELINE POOL VILLA</span>
-                <span>CHA-AM · THAILAND</span>
-                <span>© 2026</span>
+                <span>
+                    CELINE POOL VILLA
+                </span>
+
+                <span>
+                    CHA-AM · THAILAND
+                </span>
+
+                <span>
+                    © 2026
+                </span>
 
             </div>
 
@@ -403,6 +593,10 @@
     </main>
 
 
+
+    <!-- SCRIPTS -->
+
+    <script src="translations.js"></script>
     <script src="script.js"></script>
 
 </body>
