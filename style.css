@@ -43,14 +43,13 @@ a {
 }
 
 
-/* =========================
-   NAVIGATION
-========================= */
+/* NAVIGATION */
 
 .navbar {
     position: fixed;
     top: 0;
     left: 0;
+
     width: 100%;
     height: 76px;
 
@@ -84,13 +83,14 @@ a {
 
 .nav-links {
     display: flex;
-    gap: 30px;
+    gap: 25px;
 }
 
 .nav-links a {
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 1px;
     opacity: 0.8;
+
     transition: opacity 0.3s ease;
 }
 
@@ -105,15 +105,16 @@ a {
 }
 
 
-/* =========================
-   HERO
-========================= */
+/* HERO */
 
 .hero {
     height: 100vh;
     min-height: 700px;
+
     position: relative;
+
     color: white;
+
     overflow: hidden;
 }
 
@@ -128,10 +129,12 @@ a {
     object-position: center;
 
     transform: scale(1.03);
+
     animation: heroZoom 12s ease-out forwards;
 }
 
 @keyframes heroZoom {
+
     from {
         transform: scale(1.08);
     }
@@ -139,6 +142,7 @@ a {
     to {
         transform: scale(1);
     }
+
 }
 
 .hero-overlay {
@@ -154,23 +158,30 @@ a {
 
 .hero-content {
     position: absolute;
+
     left: 8vw;
     bottom: 15vh;
-    max-width: 850px;
+
+    max-width: 900px;
 }
 
 .eyebrow {
     font-size: 10px;
     letter-spacing: 3px;
     text-transform: uppercase;
+
     margin-bottom: 25px;
 }
 
 .hero h1 {
     font-family: var(--serif);
+
     font-size: clamp(70px, 10vw, 150px);
+
     font-weight: 400;
+
     line-height: 0.85;
+
     letter-spacing: -5px;
 }
 
@@ -183,7 +194,9 @@ h2 em {
 .hero-details {
     display: flex;
     align-items: center;
+
     gap: 15px;
+
     margin-top: 38px;
 
     font-size: 11px;
@@ -194,16 +207,19 @@ h2 em {
 .detail-line {
     width: 35px;
     height: 1px;
+
     background: rgba(255, 255, 255, 0.7);
 }
 
 .scroll-indicator {
     position: absolute;
+
     right: 5vw;
     bottom: 50px;
 
     display: flex;
     align-items: center;
+
     gap: 15px;
 
     font-size: 9px;
@@ -217,13 +233,12 @@ h2 em {
 .scroll-line {
     width: 55px;
     height: 1px;
+
     background: white;
 }
 
 
-/* =========================
-   GENERAL
-========================= */
+/* GENERAL */
 
 .section {
     padding: 150px 8vw;
@@ -233,7 +248,9 @@ h2 em {
     min-height: 75vh;
 
     display: grid;
+
     grid-template-columns: 1fr 2fr;
+
     gap: 8vw;
 
     align-items: center;
@@ -241,6 +258,7 @@ h2 em {
 
 .intro-label {
     display: flex;
+
     gap: 20px;
 
     font-size: 10px;
@@ -258,9 +276,11 @@ h2 em {
 
 h2 {
     font-family: var(--serif);
+
     font-weight: 400;
 
     font-size: clamp(48px, 6vw, 90px);
+
     line-height: 0.95;
 
     letter-spacing: -3px;
@@ -269,20 +289,19 @@ h2 {
 }
 
 .intro-text {
-    max-width: 480px;
+    max-width: 620px;
 
-    margin-top: 45px;
+    margin-top: 35px;
 
     font-size: 16px;
+
     line-height: 1.8;
 
     color: var(--muted);
 }
 
 
-/* =========================
-   LARGE IMAGE
-========================= */
+/* LARGE IMAGE */
 
 .visual-section {
     position: relative;
@@ -296,11 +315,13 @@ h2 {
 .large-image {
     width: 100%;
     height: 100%;
+
     overflow: hidden;
 }
 
 .large-image img {
-    transition: transform 1.2s cubic-bezier(.2, .7, .2, 1);
+    transition:
+        transform 1.2s cubic-bezier(.2, .7, .2, 1);
 }
 
 .large-image:hover img {
@@ -309,6 +330,7 @@ h2 {
 
 .image-caption {
     position: absolute;
+
     bottom: 4vw;
     left: 10vw;
     right: 10vw;
@@ -323,32 +345,35 @@ h2 {
 }
 
 
-/* =========================
-   SPLIT SECTION
-========================= */
+/* ROOMS */
 
 .split-section {
     min-height: 100vh;
 
     display: grid;
+
     grid-template-columns: 1.15fr 0.85fr;
 
     align-items: center;
+
     gap: 10vw;
 }
 
 .split-image {
     height: 75vh;
+
     overflow: hidden;
 }
 
 .split-content {
-    max-width: 480px;
+    max-width: 500px;
 }
 
 .section-number {
     font-size: 10px;
+
     letter-spacing: 2px;
+
     margin-bottom: 70px;
 }
 
@@ -358,14 +383,21 @@ h2 {
 
 .split-content>p:not(.eyebrow) {
     color: var(--muted);
+
     line-height: 1.8;
+
     font-size: 15px;
+}
+
+.secondary-text {
+    margin-top: 20px;
 }
 
 .feature-list {
     margin-top: 60px;
 
     display: flex;
+
     gap: 40px;
 }
 
@@ -375,7 +407,9 @@ h2 {
 
 .feature-list span {
     font-family: var(--serif);
+
     font-size: 28px;
+
     color: var(--green);
 }
 
@@ -383,16 +417,16 @@ h2 {
     margin-top: 7px;
 
     font-size: 9px;
+
     letter-spacing: 1.5px;
+
     text-transform: uppercase;
 
     color: var(--muted);
 }
 
 
-/* =========================
-   FULL IMAGE
-========================= */
+/* POOL */
 
 .full-image-section {
     position: relative;
@@ -409,6 +443,7 @@ h2 {
 
 .background-image {
     position: absolute;
+
     inset: 0;
 
     object-fit: cover;
@@ -416,6 +451,7 @@ h2 {
 
 .full-image-overlay {
     position: absolute;
+
     inset: 0;
 
     background:
@@ -426,35 +462,38 @@ h2 {
 
 .full-image-content {
     position: relative;
+
     z-index: 2;
 
     max-width: 650px;
+
     margin-left: 8vw;
 }
 
 .full-image-content h2 {
     color: white;
+
     margin-bottom: 35px;
 }
 
 .full-image-content>p:last-child {
-    max-width: 400px;
+    max-width: 500px;
 
     line-height: 1.8;
+
     color: rgba(255, 255, 255, 0.8);
 }
 
 
-/* =========================
-   LIFESTYLE
-========================= */
+/* EXPERIENCE */
 
 .lifestyle {
     padding-bottom: 180px;
 }
 
 .lifestyle-heading {
-    max-width: 700px;
+    max-width: 900px;
+
     margin-bottom: 100px;
 }
 
@@ -462,9 +501,23 @@ h2 {
     font-size: clamp(50px, 7vw, 100px);
 }
 
+.experience-text {
+    max-width: 600px;
+
+    margin-top: 30px;
+
+    font-size: 15px;
+
+    line-height: 1.8;
+
+    color: var(--muted);
+}
+
 .lifestyle-grid {
     display: grid;
+
     grid-template-columns: 1.5fr 0.8fr;
+
     gap: 30px;
 
     align-items: end;
@@ -472,6 +525,7 @@ h2 {
 
 .lifestyle-image {
     height: 55vh;
+
     overflow: hidden;
 }
 
@@ -480,22 +534,22 @@ h2 {
 }
 
 
-/* =========================
-   LOCATION
-========================= */
+/* LOCATION */
 
 .location-section {
     background: var(--sand);
 
     display: grid;
+
     grid-template-columns: 0.8fr 1.2fr;
 
     gap: 10vw;
+
     align-items: center;
 }
 
 .location-content {
-    max-width: 500px;
+    max-width: 550px;
 }
 
 .location-content h2 {
@@ -504,16 +558,13 @@ h2 {
 
 .location-content>p:not(.eyebrow) {
     color: var(--muted);
-    line-height: 1.8;
-}
 
-.location-image {
-    height: 75vh;
-    overflow: hidden;
+    line-height: 1.8;
 }
 
 .location-list {
     display: flex;
+
     gap: 50px;
 
     margin-top: 60px;
@@ -521,7 +572,9 @@ h2 {
 
 .location-list span {
     font-family: var(--serif);
+
     font-size: 26px;
+
     color: var(--green);
 }
 
@@ -529,19 +582,26 @@ h2 {
     margin-top: 7px;
 
     font-size: 9px;
+
     text-transform: uppercase;
+
     letter-spacing: 1.5px;
 
     color: var(--muted);
 }
 
+.location-image {
+    height: 75vh;
 
-/* =========================
-   FINAL IMAGE
-========================= */
+    overflow: hidden;
+}
+
+
+/* FINAL IMAGE */
 
 .final-image {
     position: relative;
+
     height: 85vh;
 
     overflow: hidden;
@@ -559,6 +619,7 @@ h2 {
 
 .final-overlay {
     position: absolute;
+
     inset: 0;
 
     background: rgba(10, 30, 25, 0.25);
@@ -578,32 +639,36 @@ h2 {
 }
 
 
-/* =========================
-   CONTACT
-========================= */
+/* CONTACT */
 
 .contact {
     min-height: 80vh;
 
     display: flex;
+
     flex-direction: column;
+
     justify-content: space-between;
 
     background: var(--green);
+
     color: white;
 }
 
 .contact-top {
-    max-width: 800px;
+    max-width: 850px;
 }
 
 .contact h2 {
     color: white;
+
     margin-bottom: 35px;
 }
 
 .contact-top>p:not(.eyebrow) {
-    max-width: 420px;
+    max-width: 520px;
+
+    margin-bottom: 10px;
 
     line-height: 1.8;
 
@@ -612,17 +677,21 @@ h2 {
 
 .contact-button {
     display: inline-flex;
+
     align-items: center;
+
     gap: 40px;
 
-    margin-top: 50px;
+    margin-top: 40px;
 
     padding-bottom: 12px;
 
     border-bottom: 1px solid rgba(255, 255, 255, 0.5);
 
     font-size: 11px;
+
     letter-spacing: 2px;
+
     text-transform: uppercase;
 }
 
@@ -632,6 +701,7 @@ h2 {
 
 .contact-bottom {
     display: flex;
+
     justify-content: space-between;
 
     padding-top: 30px;
@@ -639,18 +709,18 @@ h2 {
     border-top: 1px solid rgba(255, 255, 255, 0.15);
 
     font-size: 9px;
+
     letter-spacing: 2px;
 
     color: rgba(255, 255, 255, 0.5);
 }
 
 
-/* =========================
-   ANIMATIONS
-========================= */
+/* ANIMATIONS */
 
 .reveal {
     opacity: 0;
+
     transform: translateY(45px);
 
     transition:
@@ -660,12 +730,15 @@ h2 {
 
 .reveal.visible {
     opacity: 1;
+
     transform: translateY(0);
 }
 
 .reveal-image {
     opacity: 0;
-    transform: translateY(50px) scale(0.98);
+
+    transform:
+        translateY(50px) scale(0.98);
 
     transition:
         opacity 1.2s ease,
@@ -674,34 +747,39 @@ h2 {
 
 .reveal-image.visible {
     opacity: 1;
-    transform: translateY(0) scale(1);
+
+    transform:
+        translateY(0) scale(1);
 }
 
 
-/* =========================
-   MOBILE
-========================= */
+/* MOBILE */
 
 @media (max-width: 800px) {
 
     .navbar {
         height: 65px;
+
         padding: 0 6vw;
     }
 
     .nav-links {
         position: fixed;
+
         inset: 0;
 
         background: var(--green);
 
         flex-direction: column;
+
         align-items: center;
+
         justify-content: center;
 
         gap: 30px;
 
         opacity: 0;
+
         pointer-events: none;
 
         transition: opacity 0.3s ease;
@@ -709,6 +787,7 @@ h2 {
 
     .nav-links.open {
         opacity: 1;
+
         pointer-events: auto;
     }
 
@@ -718,10 +797,13 @@ h2 {
 
     .menu-toggle {
         display: flex;
+
         flex-direction: column;
+
         gap: 6px;
 
         position: relative;
+
         z-index: 10;
     }
 
@@ -736,16 +818,19 @@ h2 {
 
     .hero-content {
         left: 6vw;
+
         bottom: 13vh;
     }
 
     .hero h1 {
         font-size: 18vw;
+
         letter-spacing: -3px;
     }
 
     .hero-details {
         flex-wrap: wrap;
+
         line-height: 1.8;
     }
 
@@ -773,11 +858,13 @@ h2 {
 
     .visual-section {
         height: 70vh;
+
         padding: 0 6vw 6vw;
     }
 
     .split-section {
         display: flex;
+
         flex-direction: column;
 
         gap: 70px;
@@ -803,11 +890,13 @@ h2 {
 
     .full-image-content {
         margin-left: 6vw;
+
         margin-right: 6vw;
     }
 
     .lifestyle-grid {
         grid-template-columns: 1fr;
+
         gap: 20px;
     }
 
@@ -818,7 +907,9 @@ h2 {
 
     .location-section {
         display: flex;
+
         flex-direction: column;
+
         align-items: stretch;
 
         gap: 70px;
@@ -842,6 +933,8 @@ h2 {
 
     .contact-bottom {
         flex-direction: column;
+
         gap: 12px;
     }
+
 }

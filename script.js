@@ -1,6 +1,4 @@
-// =========================
 // NAVIGATION
-// =========================
 
 const navbar = document.querySelector(".navbar");
 
@@ -13,9 +11,7 @@ window.addEventListener("scroll", () => {
 });
 
 
-// =========================
 // MOBILE MENU
-// =========================
 
 const menuToggle = document.querySelector(".menu-toggle");
 const navLinks = document.querySelector(".nav-links");
@@ -31,9 +27,7 @@ document.querySelectorAll(".nav-links a").forEach(link => {
 });
 
 
-// =========================
 // SCROLL REVEAL
-// =========================
 
 const revealElements = document.querySelectorAll(
     ".reveal, .reveal-image"
@@ -41,15 +35,19 @@ const revealElements = document.querySelectorAll(
 
 const observer = new IntersectionObserver(
     entries => {
+
         entries.forEach(entry => {
 
             if (entry.isIntersecting) {
+
                 entry.target.classList.add("visible");
+
                 observer.unobserve(entry.target);
 
             }
 
         });
+
     },
     {
         threshold: 0.15
@@ -61,9 +59,7 @@ revealElements.forEach(element => {
 });
 
 
-// =========================
 // SMOOTH ANCHOR SCROLL
-// =========================
 
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 
