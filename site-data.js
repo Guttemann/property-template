@@ -62,14 +62,22 @@ window.propertyConfig = {
         en: "Cha-am Forest Park is about 2.4 km away, Cha-am Railway Station about 3 km, and Hua Hin Airport around 18 km from the property.",
         th: "วนอุทยานชะอำอยู่ห่างประมาณ 2.4 กม. สถานีรถไฟชะอำประมาณ 3 กม. และสนามบินหัวหินประมาณ 18 กม. จากที่พัก"
     },
-    distances: [
-        { value: "400 m", label: { en: "Cha-Am Beach", th: "หาดชะอำ" } },
-        { value: "2.4 km", label: { en: "Cha-Am Forest Park", th: "วนอุทยานชะอำ" } },
-        { value: "3 km", label: { en: "Cha-Am Railway Station", th: "สถานีรถไฟชะอำ" } },
-        { value: "18 km", label: { en: "Hua Hin Airport", th: "สนามบินหัวหิน" } }
+    // Practical, guest-facing travel times shown next to the map.
+    // Keep this short (3-4 items) — it's meant to be scanned in a few seconds.
+    locationHighlights: [
+        { value: "5 min", label: { en: "Beach", th: "ชายหาด" } },
+        { value: "5 min", label: { en: "Restaurants", th: "ร้านอาหาร" } },
+        { value: "3 min", label: { en: "Convenience store", th: "ร้านสะดวกซื้อ" } },
+        { value: "25 min", label: { en: "Hua Hin", th: "หัวหิน" } }
     ],
     mapAddress: { en: "265/57-58 Chaolai Rd. Soi 3, Cha-Am, Phetchaburi 76120", th: "265/57-58 ถนนเจ้าลาย ซอย 3 ชะอำ เพชรบุรี 76120" },
     mapUrl: "https://www.google.com/maps/search/?api=1&query=Celine+Pool+Villa+Cha-Am",
+    // Keyless Google Maps embed (no API key needed). Built from the same
+    // place query as mapUrl above. To reuse this template for another
+    // villa: search the new address on Google Maps, click Share > Embed a
+    // map, and copy the src="..." value from the provided <iframe> here —
+    // or just swap the "q=" query text for the new address/place name.
+    mapEmbedUrl: "https://www.google.com/maps?q=Celine+Pool+Villa+Cha-Am%2C+Chaolai+Road+Soi+3%2C+Cha-Am%2C+Phetchaburi&z=15&output=embed",
     email: "",
     phone: "081 862 5007",
     contactUrl: "https://www.facebook.com/profile.php?id=61566361989612",

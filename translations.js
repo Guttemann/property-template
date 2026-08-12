@@ -30,7 +30,7 @@ const translations = {
 
         locationEyebrow: "LOCATION",
         locationTitle: "Easy to find. Close to what matters.",
-        mapPlaceholderTitle: "Google Maps Placeholder",
+        openInMaps: "Open in Google Maps",
 
         contactEyebrow: "BOOKING / CONTACT",
         contactTitle: "Interested in staying?",
@@ -72,7 +72,7 @@ const translations = {
 
         locationEyebrow: "ทำเลที่ตั้ง",
         locationTitle: "หาเจอง่าย ใกล้สิ่งสำคัญ",
-        mapPlaceholderTitle: "พื้นที่แผนที่ Google Maps",
+        openInMaps: "เปิดใน Google Maps",
 
         contactEyebrow: "การจอง / ติดต่อ",
         contactTitle: "สนใจเข้าพักไหม?",

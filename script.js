@@ -14,7 +14,7 @@ const lightboxCaption = document.getElementById("lightboxCaption");
 const factsGrid = document.getElementById("factsGrid");
 const galleryGrid = document.getElementById("galleryGrid");
 const amenitiesGrid = document.getElementById("amenitiesGrid");
-const distanceGrid = document.getElementById("distanceGrid");
+const locationHighlightsGrid = document.getElementById("locationHighlightsGrid");
 
 let observer;
 
@@ -90,14 +90,22 @@ function renderAmenities() {
     `).join("");
 }
 
-function renderDistances() {
+function renderLocationHighlights() {
     const config = window.propertyConfig;
-    distanceGrid.innerHTML = config.distances.map(item => `
-        <article class="distance-card reveal">
-            <div class="distance-value">${item.value}</div>
-            <div class="distance-label">${getText(item.label)}</div>
-        </article>
+    locationHighlightsGrid.innerHTML = config.locationHighlights.map(item => `
+        <div class="highlight-item reveal">
+            <div class="highlight-value">${item.value}</div>
+            <div class="highlight-label">${getText(item.label)}</div>
+        </div>
     `).join("");
+}
+
+function renderMapEmbed() {
+    const config = window.propertyConfig;
+    document.querySelectorAll("[data-property-map-embed]").forEach(el => {
+        el.src = config.mapEmbedUrl;
+        el.title = `Map showing the location of ${getText(config.name)}`;
+    });
 }
 
 function renderStaticContent() {
@@ -126,7 +134,8 @@ function renderStaticContent() {
     renderFacts();
     renderGallery();
     renderAmenities();
-    renderDistances();
+    renderLocationHighlights();
+    renderMapEmbed();
     observeRevealElements();
 }
 

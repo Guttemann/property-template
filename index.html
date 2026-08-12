@@ -153,18 +153,22 @@
                 <p class="intro-text" data-property-location-body>
                     Located in a calm residential area with quick access to the beach, restaurants and local essentials.
                 </p>
-                <p class="secondary-text" data-property-location-body-2>
-                    Ideal for guests who want a private stay without feeling far from the best parts of the destination.
-                </p>
 
-                <div class="distance-grid" id="distanceGrid"></div>
+                <div class="location-highlights" id="locationHighlightsGrid"></div>
             </div>
 
-            <div class="map-card reveal-image">
-                <div class="map-placeholder">
-                    <span class="map-pin">⌖</span>
-                    <strong data-i18n="mapPlaceholderTitle">Google Maps Placeholder</strong>
-                    <p data-property-map-address>cha am, Thailand</p>
+            <div class="map-panel reveal-image">
+                <div class="map-frame">
+                    <iframe data-property-map-embed src="" title="Property location map" loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+
+                <div class="map-panel-footer">
+                    <p class="map-address" data-property-map-address>cha am, Thailand</p>
+                    <a class="map-cta" data-property-map-link href="#" target="_blank" rel="noopener">
+                        <span data-i18n="openInMaps">Open in Google Maps</span>
+                        <span class="map-cta-arrow" aria-hidden="true">→</span>
+                    </a>
                 </div>
             </div>
         </section>
