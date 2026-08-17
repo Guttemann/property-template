@@ -63,6 +63,7 @@
             <a href="#gallery" data-i18n="navGallery">Gallery</a>
             <a href="#amenities" data-i18n="navAmenities">Amenities</a>
             <a href="#location" data-i18n="navLocation">Location</a>
+            <a href="#booking" data-i18n="navBooking">Booking</a>
             <a href="#contact" data-i18n="navContact">Contact</a>
         </div>
 
@@ -100,7 +101,7 @@
             </div>
 
             <div class="hero-actions">
-                <a href="#contact" class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
+                <a href="#booking" class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
                 <a href="#location" class="btn btn-secondary" data-i18n="viewLocation">View Location</a>
             </div>
         </div>
@@ -216,6 +217,131 @@
             </div>
         </section>
 
+        <section class="section booking-section" id="booking">
+            <div class="section-head reveal">
+                <p class="eyebrow" data-i18n="bookingEyebrow">CHECK AVAILABILITY</p>
+                <h2 data-i18n="bookingTitle">Plan your stay.</h2>
+                <p class="section-intro" data-i18n="bookingIntro">
+                    Select your dates and guests to check availability, then send a request — a real person will
+                    confirm the details.
+                </p>
+            </div>
+
+            <div class="booking-panel reveal-image" id="bookingPanel">
+
+                <!-- STEP 1: calendar + guests + check availability -->
+                <div class="booking-widget" id="bookingWidget">
+                    <div class="booking-calendar" id="bookingCalendar" aria-label="Availability calendar"></div>
+
+                    <div class="booking-sidebar">
+                        <div class="booking-dates">
+                            <div class="booking-date-box">
+                                <span data-i18n="checkInLabel">Check-in</span>
+                                <strong id="bookingCheckInDisplay" data-i18n="selectDate">Select date</strong>
+                            </div>
+                            <div class="booking-date-box">
+                                <span data-i18n="checkOutLabel">Check-out</span>
+                                <strong id="bookingCheckOutDisplay" data-i18n="selectDate">Select date</strong>
+                            </div>
+                        </div>
+
+                        <div class="booking-guests">
+                            <label for="bookingGuests" data-i18n="guestsLabel">Guests</label>
+                            <div class="guest-stepper">
+                                <button type="button" class="guest-btn" id="guestMinus"
+                                    aria-label="Decrease guests">−</button>
+                                <input type="text" id="bookingGuests" name="guests" value="1" readonly
+                                    inputmode="numeric" aria-live="polite" aria-label="Guests">
+                                <button type="button" class="guest-btn" id="guestPlus"
+                                    aria-label="Increase guests">+</button>
+                            </div>
+                        </div>
+
+                        <p class="booking-message" id="bookingValidationMessage" role="alert" hidden></p>
+
+                        <button type="button" class="btn btn-primary booking-check-btn" id="bookingCheckBtn"
+                            data-i18n="checkAvailabilityBtn">Check Availability</button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: result -->
+                <div class="booking-result" id="bookingResult" hidden>
+                    <div class="booking-result-state is-available" id="bookingAvailableState" hidden>
+                        <p class="booking-result-icon" aria-hidden="true">✓</p>
+                        <h3 data-i18n="availableTitle">Villa available</h3>
+                        <p class="booking-result-summary" id="bookingAvailableSummary"></p>
+                        <p class="booking-price-estimate" id="bookingPriceEstimate" hidden></p>
+                        <button type="button" class="btn btn-primary" id="requestToBookBtn"
+                            data-i18n="requestToBook">Request to Book</button>
+                    </div>
+
+                    <div class="booking-result-state is-unavailable" id="bookingUnavailableState" hidden>
+                        <h3 data-i18n="unavailableTitle">Sorry, these dates are unavailable.</h3>
+                        <p data-i18n="unavailableText">Please choose different dates.</p>
+                        <button type="button" class="btn btn-secondary" id="chooseOtherDatesBtn"
+                            data-i18n="chooseOtherDates">Choose Different Dates</button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: booking request form -->
+                <div class="booking-request" id="bookingRequestSection" hidden>
+                    <div class="booking-request-summary" id="bookingRequestSummary"></div>
+
+                    <form id="bookingRequestForm" novalidate>
+                        <div class="form-row">
+                            <label for="reqName" data-i18n="nameLabel">Name</label>
+                            <input type="text" id="reqName" name="name" required autocomplete="name">
+                        </div>
+
+                        <div class="form-row">
+                            <label for="reqEmail" data-i18n="emailLabel">Email</label>
+                            <input type="email" id="reqEmail" name="email" required autocomplete="email">
+                        </div>
+
+                        <div class="form-row">
+                            <label for="reqPhone" data-i18n="phoneLineLabel">Phone / LINE</label>
+                            <input type="text" id="reqPhone" name="phone" required autocomplete="tel">
+                        </div>
+
+                        <div class="form-row">
+                            <label for="reqMessage" data-i18n="messageOptional">Message (optional)</label>
+                            <textarea id="reqMessage" name="message" rows="3"></textarea>
+                        </div>
+
+                        <p class="booking-disclaimer" data-i18n="bookingDisclaimer">
+                            Your booking is a request and will be confirmed by the property owner.
+                        </p>
+
+                        <p class="booking-message" id="bookingFormError" role="alert" hidden></p>
+
+                        <div class="booking-form-actions">
+                            <button type="button" class="btn btn-secondary" id="backToResultBtn"
+                                data-i18n="back">Back</button>
+                            <button type="submit" class="btn btn-primary" id="sendRequestBtn"
+                                data-i18n="sendBookingRequest">Send Booking Request</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- STEP 4: success -->
+                <div class="booking-success" id="bookingSuccess" hidden>
+                    <h3 data-i18n="successTitle">Booking Request Sent</h3>
+                    <p class="booking-success-thanks" data-i18n="successThanks">Thank you!</p>
+                    <p data-i18n="successReceived">Your request has been received.</p>
+
+                    <div class="booking-success-summary" id="bookingSuccessSummary"></div>
+
+                    <p class="booking-disclaimer" data-i18n="ownerWillContact">
+                        The property owner will contact you to confirm availability and booking details.
+                    </p>
+
+                    <button type="button" class="btn btn-primary" id="backToPropertyBtn"
+                        data-i18n="backToProperty">Back to Property</button>
+                </div>
+
+            </div>
+        </section>
+
         <section class="section contact-section" id="contact">
             <div class="contact-card reveal">
                 <p class="eyebrow" data-i18n="contactEyebrow">BOOKING / CONTACT</p>
@@ -226,8 +352,7 @@
                 </p>
 
                 <div class="contact-actions">
-                    <a href="https://www.facebook.com/profile.php?id=61566361989612" target="_blank" rel="noopener"
-                        class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
+                    <a href="#booking" class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
 
                     <a href="https://www.facebook.com/profile.php?id=61566361989612" target="_blank" rel="noopener"
                         class="btn btn-secondary" data-i18n="contactOwner">Contact Owner</a>

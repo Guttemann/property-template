@@ -82,5 +82,47 @@ window.propertyConfig = {
     phone: "081 862 5007",
     contactUrl: "https://www.facebook.com/profile.php?id=61566361989612",
     photosUrl: "https://www.google.com/local/place/fid/0x30fd0300130af3ef:0xa74bff6b297cf5/photosphere",
-    footerCopy: { en: "© 2026 Celine Pool Villa Cha-Am", th: "© 2026 Celine Pool Villa Cha-Am" }
+    footerCopy: { en: "© 2026 Celine Pool Villa Cha-Am", th: "© 2026 Celine Pool Villa Cha-Am" },
+
+    // BOOKING / AVAILABILITY
+    // This is v1 of the booking system: manual blocked dates, no live
+    // channel-manager sync yet. Everything the calendar/UI needs is read
+    // through getBlockedDates() in script.js, so this array can later be
+    // replaced by data pulled from an Airbnb/Booking.com/Agoda iCal feed or
+    // a channel-manager API without touching any UI code.
+    booking: {
+        enabled: true,
+
+        // Dates guests cannot book, in "YYYY-MM-DD" format.
+        blockedDates: [
+            "2026-08-20",
+            "2026-08-21",
+            "2026-09-05"
+        ],
+
+        // Smallest number of consecutive nights allowed per stay.
+        minimumStay: 1,
+
+        // Maximum guests the property can host. Keep in sync with the
+        // "guests" fact above if that changes.
+        maxGuests: 15,
+
+        // Optional, non-binding price estimate shown to guests.
+        // Set enabled: true and nightlyRate > 0 to show "Estimated total".
+        pricing: {
+            enabled: false,
+            currency: "THB",
+            nightlyRate: 0
+        },
+
+        // Where booking requests should notionally go. Not used by the
+        // demo submission yet, but kept here so a real integration
+        // (Formspree/EmailJS/Supabase/etc.) has one place to read contact
+        // details from.
+        contact: {
+            email: "",
+            phone: "081 862 5007",
+            line: ""
+        }
+    }
 };

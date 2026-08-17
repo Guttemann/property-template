@@ -1,0 +1,1447 @@
+diff --git a/index.html b/index.html
+index 0e77f1e..65eba90 100644
+--- a/index.html
++++ b/index.html
+@@ -63,6 +63,7 @@
+             <a href="#gallery" data-i18n="navGallery">Gallery</a>
+             <a href="#amenities" data-i18n="navAmenities">Amenities</a>
+             <a href="#location" data-i18n="navLocation">Location</a>
++            <a href="#booking" data-i18n="navBooking">Booking</a>
+             <a href="#contact" data-i18n="navContact">Contact</a>
+         </div>
+ 
+@@ -100,7 +101,7 @@
+             </div>
+ 
+             <div class="hero-actions">
+-                <a href="#contact" class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
++                <a href="#booking" class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
+                 <a href="#location" class="btn btn-secondary" data-i18n="viewLocation">View Location</a>
+             </div>
+         </div>
+@@ -216,6 +217,131 @@
+             </div>
+         </section>
+ 
++        <section class="section booking-section" id="booking">
++            <div class="section-head reveal">
++                <p class="eyebrow" data-i18n="bookingEyebrow">CHECK AVAILABILITY</p>
++                <h2 data-i18n="bookingTitle">Plan your stay.</h2>
++                <p class="section-intro" data-i18n="bookingIntro">
++                    Select your dates and guests to check availability, then send a request — a real person will
++                    confirm the details.
++                </p>
++            </div>
++
++            <div class="booking-panel reveal-image" id="bookingPanel">
++
++                <!-- STEP 1: calendar + guests + check availability -->
++                <div class="booking-widget" id="bookingWidget">
++                    <div class="booking-calendar" id="bookingCalendar" aria-label="Availability calendar"></div>
++
++                    <div class="booking-sidebar">
++                        <div class="booking-dates">
++                            <div class="booking-date-box">
++                                <span data-i18n="checkInLabel">Check-in</span>
++                                <strong id="bookingCheckInDisplay" data-i18n="selectDate">Select date</strong>
++                            </div>
++                            <div class="booking-date-box">
++                                <span data-i18n="checkOutLabel">Check-out</span>
++                                <strong id="bookingCheckOutDisplay" data-i18n="selectDate">Select date</strong>
++                            </div>
++                        </div>
++
++                        <div class="booking-guests">
++                            <label for="bookingGuests" data-i18n="guestsLabel">Guests</label>
++                            <div class="guest-stepper">
++                                <button type="button" class="guest-btn" id="guestMinus"
++                                    aria-label="Decrease guests">−</button>
++                                <input type="text" id="bookingGuests" name="guests" value="1" readonly
++                                    inputmode="numeric" aria-live="polite" aria-label="Guests">
++                                <button type="button" class="guest-btn" id="guestPlus"
++                                    aria-label="Increase guests">+</button>
++                            </div>
++                        </div>
++
++                        <p class="booking-message" id="bookingValidationMessage" role="alert" hidden></p>
++
++                        <button type="button" class="btn btn-primary booking-check-btn" id="bookingCheckBtn"
++                            data-i18n="checkAvailabilityBtn">Check Availability</button>
++                    </div>
++                </div>
++
++                <!-- STEP 2: result -->
++                <div class="booking-result" id="bookingResult" hidden>
++                    <div class="booking-result-state is-available" id="bookingAvailableState" hidden>
++                        <p class="booking-result-icon" aria-hidden="true">✓</p>
++                        <h3 data-i18n="availableTitle">Villa available</h3>
++                        <p class="booking-result-summary" id="bookingAvailableSummary"></p>
++                        <p class="booking-price-estimate" id="bookingPriceEstimate" hidden></p>
++                        <button type="button" class="btn btn-primary" id="requestToBookBtn"
++                            data-i18n="requestToBook">Request to Book</button>
++                    </div>
++
++                    <div class="booking-result-state is-unavailable" id="bookingUnavailableState" hidden>
++                        <h3 data-i18n="unavailableTitle">Sorry, these dates are unavailable.</h3>
++                        <p data-i18n="unavailableText">Please choose different dates.</p>
++                        <button type="button" class="btn btn-secondary" id="chooseOtherDatesBtn"
++                            data-i18n="chooseOtherDates">Choose Different Dates</button>
++                    </div>
++                </div>
++
++                <!-- STEP 3: booking request form -->
++                <div class="booking-request" id="bookingRequestSection" hidden>
++                    <div class="booking-request-summary" id="bookingRequestSummary"></div>
++
++                    <form id="bookingRequestForm" novalidate>
++                        <div class="form-row">
++                            <label for="reqName" data-i18n="nameLabel">Name</label>
++                            <input type="text" id="reqName" name="name" required autocomplete="name">
++                        </div>
++
++                        <div class="form-row">
++                            <label for="reqEmail" data-i18n="emailLabel">Email</label>
++                            <input type="email" id="reqEmail" name="email" required autocomplete="email">
++                        </div>
++
++                        <div class="form-row">
++                            <label for="reqPhone" data-i18n="phoneLineLabel">Phone / LINE</label>
++                            <input type="text" id="reqPhone" name="phone" required autocomplete="tel">
++                        </div>
++
++                        <div class="form-row">
++                            <label for="reqMessage" data-i18n="messageOptional">Message (optional)</label>
++                            <textarea id="reqMessage" name="message" rows="3"></textarea>
++                        </div>
++
++                        <p class="booking-disclaimer" data-i18n="bookingDisclaimer">
++                            Your booking is a request and will be confirmed by the property owner.
++                        </p>
++
++                        <p class="booking-message" id="bookingFormError" role="alert" hidden></p>
++
++                        <div class="booking-form-actions">
++                            <button type="button" class="btn btn-secondary" id="backToResultBtn"
++                                data-i18n="back">Back</button>
++                            <button type="submit" class="btn btn-primary" id="sendRequestBtn"
++                                data-i18n="sendBookingRequest">Send Booking Request</button>
++                        </div>
++                    </form>
++                </div>
++
++                <!-- STEP 4: success -->
++                <div class="booking-success" id="bookingSuccess" hidden>
++                    <h3 data-i18n="successTitle">Booking Request Sent</h3>
++                    <p class="booking-success-thanks" data-i18n="successThanks">Thank you!</p>
++                    <p data-i18n="successReceived">Your request has been received.</p>
++
++                    <div class="booking-success-summary" id="bookingSuccessSummary"></div>
++
++                    <p class="booking-disclaimer" data-i18n="ownerWillContact">
++                        The property owner will contact you to confirm availability and booking details.
++                    </p>
++
++                    <button type="button" class="btn btn-primary" id="backToPropertyBtn"
++                        data-i18n="backToProperty">Back to Property</button>
++                </div>
++
++            </div>
++        </section>
++
+         <section class="section contact-section" id="contact">
+             <div class="contact-card reveal">
+                 <p class="eyebrow" data-i18n="contactEyebrow">BOOKING / CONTACT</p>
+@@ -226,8 +352,7 @@
+                 </p>
+ 
+                 <div class="contact-actions">
+-                    <a href="https://www.facebook.com/profile.php?id=61566361989612" target="_blank" rel="noopener"
+-                        class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
++                    <a href="#booking" class="btn btn-primary" data-i18n="checkAvailability">Check Availability</a>
+ 
+                     <a href="https://www.facebook.com/profile.php?id=61566361989612" target="_blank" rel="noopener"
+                         class="btn btn-secondary" data-i18n="contactOwner">Contact Owner</a>
+diff --git a/script.js b/script.js
+index 3cbeb38..ac2c2cd 100644
+--- a/script.js
++++ b/script.js
+@@ -1,7 +1,27 @@
+ // =========================
+ // STATE
+ // =========================
+-let currentLanguage = localStorage.getItem("property-language") || "en";
++
++// localStorage can throw (not just return null) in some contexts — Safari
++// private browsing, sandboxed iframes, file:// origins. Guard it so a
++// storage failure never breaks the whole page.
++function safeStorageGet(key) {
++    try {
++        return window.localStorage.getItem(key);
++    } catch (error) {
++        return null;
++    }
++}
++
++function safeStorageSet(key, value) {
++    try {
++        window.localStorage.setItem(key, value);
++    } catch (error) {
++        // Storage unavailable — language choice just won't persist.
++    }
++}
++
++let currentLanguage = safeStorageGet("property-language") || "en";
+ let lightboxIndex = 0;
+ 
+ const navbar = document.querySelector(".navbar");
+@@ -154,8 +174,9 @@ function setLanguage(language) {
+         button.classList.toggle("active", button.dataset.lang === language);
+     });
+ 
+-    localStorage.setItem("property-language", language);
++    safeStorageSet("property-language", language);
+     renderStaticContent();
++    refreshBookingTexts();
+ }
+ 
+ window.addEventListener("scroll", () => {
+@@ -234,5 +255,547 @@ window.addEventListener("keydown", (event) => {
+     if (event.key === "ArrowRight") stepLightbox(1);
+ });
+ 
++// =========================
++// BOOKING / AVAILABILITY
++// =========================
++
++const bookingState = {
++    checkIn: null,          // Date
++    checkOut: null,         // Date
++    guests: 1,
++    maxGuests: 1,
++    minimumStay: 1,
++    blockedDates: new Set(), // "YYYY-MM-DD" strings
++    viewMonth: null,         // Date, first of the visible month
++    lastResult: null,        // { available: boolean, nights?: number }
++    messageKey: null,        // last shown validation message key, for re-translation
++    messageParams: null
++};
++
++let bookingInitialized = false;
++
++// --- Availability service abstraction -----------------------------------
++// This is the one place that knows where blocked dates come from. Today it
++// just reads the manually curated list in site-data.js. When a real
++// Airbnb/Booking.com/Agoda/channel-manager sync is added, replace the body
++// of this function with a fetch to that service (parsing iCal, calling an
++// API, etc.) — every caller already awaits it, so no calendar or UI code
++// needs to change.
++async function getBlockedDates() {
++    const config = window.propertyConfig;
++    return (config && config.booking && config.booking.blockedDates) || [];
++}
++
++// --- Date helpers ---------------------------------------------------------
++function startOfDay(date) {
++    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
++}
++
++function todayStart() {
++    return startOfDay(new Date());
++}
++
++function formatISODate(date) {
++    const y = date.getFullYear();
++    const m = String(date.getMonth() + 1).padStart(2, "0");
++    const d = String(date.getDate()).padStart(2, "0");
++    return `${y}-${m}-${d}`;
++}
++
++function parseISODate(value) {
++    const [y, m, d] = value.split("-").map(Number);
++    return new Date(y, m - 1, d);
++}
++
++function addDays(date, amount) {
++    const result = new Date(date);
++    result.setDate(result.getDate() + amount);
++    return result;
++}
++
++function isSameDate(a, b) {
++    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
++}
++
++function diffInNights(checkIn, checkOut) {
++    return Math.round((startOfDay(checkOut) - startOfDay(checkIn)) / 86400000);
++}
++
++function formatDisplayDate(date) {
++    const months = (translations[currentLanguage] && translations[currentLanguage].calendarMonths) || translations.en.calendarMonths;
++    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
++}
++
++// --- Translation helper (supports {n}-style placeholders) -----------------
++function t(key, params) {
++    const dict = translations[currentLanguage] || translations.en;
++    let text = dict[key] ?? translations.en[key] ?? "";
++    if (params) {
++        Object.keys(params).forEach(param => {
++            text = text.replace(`{${param}}`, params[param]);
++        });
++    }
++    return text;
++}
++
++// --- Init -------------------------------------------------------------
++async function initBooking() {
++    const config = window.propertyConfig;
++    const bookingSection = document.getElementById("booking");
++    const navBookingLink = document.querySelector('.nav-links a[href="#booking"]');
++
++    if (!config || !config.booking || !config.booking.enabled) {
++        if (bookingSection) bookingSection.style.display = "none";
++        if (navBookingLink) navBookingLink.style.display = "none";
++        return;
++    }
++
++    bookingState.minimumStay = Math.max(1, Number(config.booking.minimumStay) || 1);
++    bookingState.maxGuests = Math.max(1, Number(config.booking.maxGuests) || 1);
++    bookingState.guests = 1;
++    bookingState.viewMonth = todayStart();
++    bookingState.viewMonth.setDate(1);
++
++    const blocked = await getBlockedDates();
++    bookingState.blockedDates = new Set(blocked);
++
++    renderCalendar();
++    updateDateDisplays();
++    bindBookingEvents();
++    bookingInitialized = true;
++}
++
++function bindBookingEvents() {
++    document.getElementById("guestMinus").addEventListener("click", () => changeGuests(-1));
++    document.getElementById("guestPlus").addEventListener("click", () => changeGuests(1));
++    document.getElementById("bookingCheckBtn").addEventListener("click", handleCheckAvailability);
++    document.getElementById("requestToBookBtn").addEventListener("click", showBookingRequestForm);
++    document.getElementById("chooseOtherDatesBtn").addEventListener("click", resetToWidget);
++    document.getElementById("backToResultBtn").addEventListener("click", showResultFromRequest);
++    document.getElementById("bookingRequestForm").addEventListener("submit", handleBookingRequestSubmit);
++    document.getElementById("backToPropertyBtn").addEventListener("click", handleBackToProperty);
++}
++
++// --- Guests -----------------------------------------------------------
++function changeGuests(delta) {
++    const next = bookingState.guests + delta;
++    if (next < 1) return;
++    if (next > bookingState.maxGuests) {
++        showValidationMessage("maxGuestsMessage", { n: bookingState.maxGuests });
++        return;
++    }
++    bookingState.guests = next;
++    document.getElementById("bookingGuests").value = String(next);
++    clearValidationMessage();
++}
++
++// --- Validation message ------------------------------------------------
++function showValidationMessage(key, params) {
++    bookingState.messageKey = key;
++    bookingState.messageParams = params || null;
++    const el = document.getElementById("bookingValidationMessage");
++    el.textContent = t(key, params);
++    el.hidden = false;
++}
++
++function clearValidationMessage() {
++    bookingState.messageKey = null;
++    bookingState.messageParams = null;
++    const el = document.getElementById("bookingValidationMessage");
++    el.textContent = "";
++    el.hidden = true;
++}
++
++// --- Date displays -------------------------------------------------------
++function updateDateDisplays() {
++    const checkInEl = document.getElementById("bookingCheckInDisplay");
++    const checkOutEl = document.getElementById("bookingCheckOutDisplay");
++    checkInEl.textContent = bookingState.checkIn ? formatDisplayDate(bookingState.checkIn) : t("selectDate");
++    checkOutEl.textContent = bookingState.checkOut ? formatDisplayDate(bookingState.checkOut) : t("selectDate");
++}
++
++// --- Calendar -----------------------------------------------------------
++function renderCalendar() {
++    const container = document.getElementById("bookingCalendar");
++    if (!container) return;
++
++    const months = (translations[currentLanguage] && translations[currentLanguage].calendarMonths) || translations.en.calendarMonths;
++    const weekdays = (translations[currentLanguage] && translations[currentLanguage].calendarWeekdaysShort) || translations.en.calendarWeekdaysShort;
++
++    const viewMonth = bookingState.viewMonth;
++    const year = viewMonth.getFullYear();
++    const month = viewMonth.getMonth();
++
++    const today = todayStart();
++    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
++
++    const firstOfMonth = new Date(year, month, 1);
++    // getDay(): 0=Sun..6=Sat -> shift so the grid starts on Monday.
++    const firstWeekday = (firstOfMonth.getDay() + 6) % 7;
++    const daysInMonth = new Date(year, month + 1, 0).getDate();
++
++    let cells = "";
++    for (let i = 0; i < firstWeekday; i++) {
++        cells += `<span class="cal-day is-empty" aria-hidden="true"></span>`;
++    }
++
++    for (let day = 1; day <= daysInMonth; day++) {
++        const date = new Date(year, month, day);
++        const iso = formatISODate(date);
++        const isPast = date < today;
++        const isBlocked = bookingState.blockedDates.has(iso);
++        const isDisabled = isPast || isBlocked;
++
++        const isCheckIn = bookingState.checkIn && isSameDate(date, bookingState.checkIn);
++        const isCheckOut = bookingState.checkOut && isSameDate(date, bookingState.checkOut);
++        const isInRange = bookingState.checkIn && bookingState.checkOut &&
++            date > bookingState.checkIn && date < bookingState.checkOut;
++
++        const classes = ["cal-day"];
++        if (isDisabled) classes.push("is-disabled");
++        if (isBlocked) classes.push("is-blocked");
++        if (isCheckIn) classes.push("is-checkin");
++        if (isCheckOut) classes.push("is-checkout");
++        if (isInRange) classes.push("is-in-range");
++
++        cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" ${isDisabled ? "disabled" : ""} aria-label="${iso}">${day}</button>`;
++    }
++
++    container.innerHTML = `
++        <div class="cal-header">
++            <button type="button" class="cal-nav cal-prev" aria-label="Previous month" ${isCurrentMonth ? "disabled" : ""}>‹</button>
++            <span class="cal-month-label">${months[month]} ${year}</span>
++            <button type="button" class="cal-nav cal-next" aria-label="Next month">›</button>
++        </div>
++        <div class="cal-weekdays">${weekdays.map(w => `<span>${w}</span>`).join("")}</div>
++        <div class="cal-grid">${cells}</div>
++    `;
++
++    container.querySelector(".cal-prev").addEventListener("click", () => shiftMonth(-1));
++    container.querySelector(".cal-next").addEventListener("click", () => shiftMonth(1));
++
++    container.querySelectorAll(".cal-day:not(.is-empty):not(.is-disabled)").forEach(button => {
++        button.addEventListener("click", () => handleDayClick(button.dataset.date));
++    });
++}
++
++function shiftMonth(delta) {
++    const next = new Date(bookingState.viewMonth);
++    next.setMonth(next.getMonth() + delta);
++    if (next < todayStart()) return;
++    bookingState.viewMonth = next;
++    renderCalendar();
++}
++
++function isRangeClear(checkIn, checkOut) {
++    let cursor = new Date(checkIn);
++    while (cursor < checkOut) {
++        if (bookingState.blockedDates.has(formatISODate(cursor))) return false;
++        cursor = addDays(cursor, 1);
++    }
++    return true;
++}
++
++function handleDayClick(iso) {
++    const date = parseISODate(iso);
++    clearValidationMessage();
++    hideResult();
++
++    const startingFresh = !bookingState.checkIn || bookingState.checkOut;
++
++    if (startingFresh) {
++        bookingState.checkIn = date;
++        bookingState.checkOut = null;
++    } else if (date <= bookingState.checkIn) {
++        // Clicking on or before the current check-in restarts the selection.
++        bookingState.checkIn = date;
++        bookingState.checkOut = null;
++    } else if (!isRangeClear(bookingState.checkIn, date)) {
++        showValidationMessage("rangeBlockedMessage");
++    } else {
++        bookingState.checkOut = date;
++    }
++
++    updateDateDisplays();
++    renderCalendar();
++}
++
++// --- Check availability --------------------------------------------------
++function setCheckButtonLoading(isLoading) {
++    const btn = document.getElementById("bookingCheckBtn");
++    btn.disabled = isLoading;
++    btn.textContent = isLoading ? t("checking") : t("checkAvailabilityBtn");
++}
++
++async function handleCheckAvailability() {
++    clearValidationMessage();
++    hideResult();
++
++    // Full validation runs here too — the calendar UI already prevents most
++    // of this, but the check never relies on the UI alone.
++    if (!bookingState.checkIn || !bookingState.checkOut) {
++        showValidationMessage("selectBothDatesMessage");
++        return;
++    }
++    if (bookingState.checkOut <= bookingState.checkIn) {
++        showValidationMessage("checkoutAfterCheckinMessage");
++        return;
++    }
++    if (bookingState.checkIn < todayStart()) {
++        showValidationMessage("pastDateMessage");
++        return;
++    }
++
++    const nights = diffInNights(bookingState.checkIn, bookingState.checkOut);
++    if (nights < bookingState.minimumStay) {
++        showValidationMessage("minimumStayMessage", { n: bookingState.minimumStay });
++        return;
++    }
++    if (bookingState.guests > bookingState.maxGuests) {
++        showValidationMessage("maxGuestsMessage", { n: bookingState.maxGuests });
++        return;
++    }
++
++    setCheckButtonLoading(true);
++    // Re-read the availability source right before confirming, so a stale
++    // client-side calendar can't show a night as available when it no
++    // longer is. This is also the natural hook for a future live API call.
++    const blocked = await getBlockedDates();
++    bookingState.blockedDates = new Set(blocked);
++    setCheckButtonLoading(false);
++
++    if (!isRangeClear(bookingState.checkIn, bookingState.checkOut)) {
++        renderCalendar();
++        showResultUnavailable();
++        return;
++    }
++
++    showResultAvailable(nights);
++}
++
++function hideResult() {
++    document.getElementById("bookingResult").hidden = true;
++    document.getElementById("bookingAvailableState").hidden = true;
++    document.getElementById("bookingUnavailableState").hidden = true;
++}
++
++function showResultAvailable(nights) {
++    bookingState.lastResult = { available: true, nights };
++
++    document.getElementById("bookingResult").hidden = false;
++    document.getElementById("bookingAvailableState").hidden = false;
++    document.getElementById("bookingUnavailableState").hidden = true;
++
++    renderAvailableSummary();
++    document.getElementById("bookingResult").scrollIntoView({ behavior: "smooth", block: "nearest" });
++}
++
++function showResultUnavailable() {
++    bookingState.lastResult = { available: false };
++
++    document.getElementById("bookingResult").hidden = false;
++    document.getElementById("bookingAvailableState").hidden = true;
++    document.getElementById("bookingUnavailableState").hidden = false;
++    document.getElementById("bookingResult").scrollIntoView({ behavior: "smooth", block: "nearest" });
++}
++
++function renderAvailableSummary() {
++    const result = bookingState.lastResult;
++    if (!result || !result.available) return;
++
++    const summaryEl = document.getElementById("bookingAvailableSummary");
++    summaryEl.textContent = `${formatDisplayDate(bookingState.checkIn)} → ${formatDisplayDate(bookingState.checkOut)} · ${result.nights} ${t("nightsLabel")} · ${bookingState.guests} ${t("guestsSummary")}`;
++
++    const priceEl = document.getElementById("bookingPriceEstimate");
++    const pricing = window.propertyConfig && window.propertyConfig.booking && window.propertyConfig.booking.pricing;
++
++    if (pricing && pricing.enabled && pricing.nightlyRate > 0) {
++        const total = pricing.nightlyRate * result.nights;
++        priceEl.innerHTML = `<strong>${t("estimatedTotal")}: ${total.toLocaleString()} ${pricing.currency}</strong><br><span>${t("estimateNote")}</span>`;
++        priceEl.hidden = false;
++    } else {
++        priceEl.hidden = true;
++        priceEl.innerHTML = "";
++    }
++}
++
++function resetToWidget() {
++    bookingState.checkOut = null;
++    hideResult();
++    updateDateDisplays();
++    renderCalendar();
++}
++
++// --- Booking request form -------------------------------------------------
++function showBookingRequestForm() {
++    document.getElementById("bookingRequestSection").hidden = false;
++    document.getElementById("bookingResult").hidden = true;
++    renderRequestSummary();
++    document.getElementById("bookingRequestSection").scrollIntoView({ behavior: "smooth", block: "nearest" });
++}
++
++function showResultFromRequest() {
++    document.getElementById("bookingRequestSection").hidden = true;
++    document.getElementById("bookingResult").hidden = false;
++}
++
++function renderRequestSummary() {
++    const el = document.getElementById("bookingRequestSummary");
++    if (!bookingState.checkIn || !bookingState.checkOut) return;
++    el.innerHTML = `
++        <p class="booking-summary-title">${t("yourStay")}</p>
++        <div class="booking-summary-rows">
++            <span>${t("checkInLabel")}: <strong>${formatDisplayDate(bookingState.checkIn)}</strong></span>
++            <span>${t("checkOutLabel")}: <strong>${formatDisplayDate(bookingState.checkOut)}</strong></span>
++            <span>${t("guestsLabel")}: <strong>${bookingState.guests}</strong></span>
++        </div>
++    `;
++}
++
++function isValidEmail(email) {
++    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
++}
++
++// --- Form submission -------------------------------------------------
++// Demo submission only, so v1 doesn't need a backend. Replace the body of
++// this function with a real integration when ready — e.g. a Formspree
++// endpoint, an EmailJS send call, or a Supabase/own-API request — and
++// return a rejected Promise on failure. Nothing else needs to change,
++// since every caller already awaits this function.
++async function submitBookingRequest(payload) {
++    console.info("Booking request (demo submission):", payload);
++    return new Promise(resolve => setTimeout(resolve, 600));
++}
++
++async function handleBookingRequestSubmit(event) {
++    event.preventDefault();
++
++    const nameEl = document.getElementById("reqName");
++    const emailEl = document.getElementById("reqEmail");
++    const phoneEl = document.getElementById("reqPhone");
++    const messageEl = document.getElementById("reqMessage");
++    const errorEl = document.getElementById("bookingFormError");
++
++    const name = nameEl.value.trim();
++    const email = emailEl.value.trim();
++    const phone = phoneEl.value.trim();
++    const message = messageEl.value.trim();
++
++    errorEl.hidden = true;
++    errorEl.textContent = "";
++
++    if (!name || !email || !phone) {
++        errorEl.textContent = t("formErrorRequired");
++        errorEl.hidden = false;
++        return;
++    }
++    if (!isValidEmail(email)) {
++        errorEl.textContent = t("formErrorEmail");
++        errorEl.hidden = false;
++        return;
++    }
++    if (!bookingState.checkIn || !bookingState.checkOut) {
++        errorEl.textContent = t("formErrorGeneric");
++        errorEl.hidden = false;
++        return;
++    }
++
++    const payload = {
++        name, email, phone, message,
++        checkIn: formatISODate(bookingState.checkIn),
++        checkOut: formatISODate(bookingState.checkOut),
++        guests: bookingState.guests,
++        property: getText(window.propertyConfig && window.propertyConfig.name)
++    };
++
++    const submitBtn = document.getElementById("sendRequestBtn");
++    submitBtn.disabled = true;
++    submitBtn.textContent = t("sending");
++
++    try {
++        await submitBookingRequest(payload);
++        document.getElementById("bookingRequestForm").reset();
++        showBookingSuccess();
++    } catch (error) {
++        errorEl.textContent = t("formErrorGeneric");
++        errorEl.hidden = false;
++    } finally {
++        submitBtn.disabled = false;
++        submitBtn.textContent = t("sendBookingRequest");
++    }
++}
++
++// --- Success --------------------------------------------------------------
++function showBookingSuccess() {
++    document.getElementById("bookingWidget").hidden = true;
++    document.getElementById("bookingResult").hidden = true;
++    document.getElementById("bookingRequestSection").hidden = true;
++
++    renderSuccessSummary();
++
++    document.getElementById("bookingSuccess").hidden = false;
++    document.getElementById("bookingSuccess").scrollIntoView({ behavior: "smooth", block: "nearest" });
++}
++
++function renderSuccessSummary() {
++    if (!bookingState.checkIn || !bookingState.checkOut) return;
++    const el = document.getElementById("bookingSuccessSummary");
++    el.innerHTML = `
++        <span>${t("checkInLabel")}: <strong>${formatDisplayDate(bookingState.checkIn)}</strong></span>
++        <span>${t("checkOutLabel")}: <strong>${formatDisplayDate(bookingState.checkOut)}</strong></span>
++        <span>${t("guestsLabel")}: <strong>${bookingState.guests}</strong></span>
++    `;
++}
++
++function handleBackToProperty() {
++    document.getElementById("bookingSuccess").hidden = true;
++    document.getElementById("bookingWidget").hidden = false;
++
++    bookingState.checkIn = null;
++    bookingState.checkOut = null;
++    bookingState.guests = 1;
++    bookingState.lastResult = null;
++    document.getElementById("bookingGuests").value = "1";
++
++    clearValidationMessage();
++    hideResult();
++    updateDateDisplays();
++    renderCalendar();
++
++    document.getElementById("overview").scrollIntoView({ behavior: "smooth", block: "start" });
++}
++
++// --- Re-translate dynamic booking content on language switch --------------
++function refreshBookingTexts() {
++    if (!bookingInitialized) return;
++
++    renderCalendar();
++    updateDateDisplays();
++
++    if (bookingState.messageKey) {
++        document.getElementById("bookingValidationMessage").textContent = t(bookingState.messageKey, bookingState.messageParams);
++    }
++
++    if (bookingState.lastResult && bookingState.lastResult.available) {
++        renderAvailableSummary();
++    }
++
++    const requestSection = document.getElementById("bookingRequestSection");
++    if (requestSection && !requestSection.hidden) {
++        renderRequestSummary();
++    }
++
++    const successSection = document.getElementById("bookingSuccess");
++    if (successSection && !successSection.hidden) {
++        renderSuccessSummary();
++    }
++
++    const checkBtn = document.getElementById("bookingCheckBtn");
++    if (checkBtn && !checkBtn.disabled) {
++        checkBtn.textContent = t("checkAvailabilityBtn");
++    }
++}
++
+ // INIT
+-setLanguage(currentLanguage);
+\ No newline at end of file
++setLanguage(currentLanguage);
++initBooking();
+\ No newline at end of file
+diff --git a/site-data.js b/site-data.js
+index d6fc50c..6601499 100644
+--- a/site-data.js
++++ b/site-data.js
+@@ -82,5 +82,47 @@ window.propertyConfig = {
+     phone: "081 862 5007",
+     contactUrl: "https://www.facebook.com/profile.php?id=61566361989612",
+     photosUrl: "https://www.google.com/local/place/fid/0x30fd0300130af3ef:0xa74bff6b297cf5/photosphere",
+-    footerCopy: { en: "© 2026 Celine Pool Villa Cha-Am", th: "© 2026 Celine Pool Villa Cha-Am" }
++    footerCopy: { en: "© 2026 Celine Pool Villa Cha-Am", th: "© 2026 Celine Pool Villa Cha-Am" },
++
++    // BOOKING / AVAILABILITY
++    // This is v1 of the booking system: manual blocked dates, no live
++    // channel-manager sync yet. Everything the calendar/UI needs is read
++    // through getBlockedDates() in script.js, so this array can later be
++    // replaced by data pulled from an Airbnb/Booking.com/Agoda iCal feed or
++    // a channel-manager API without touching any UI code.
++    booking: {
++        enabled: true,
++
++        // Dates guests cannot book, in "YYYY-MM-DD" format.
++        blockedDates: [
++            "2026-08-20",
++            "2026-08-21",
++            "2026-09-05"
++        ],
++
++        // Smallest number of consecutive nights allowed per stay.
++        minimumStay: 1,
++
++        // Maximum guests the property can host. Keep in sync with the
++        // "guests" fact above if that changes.
++        maxGuests: 15,
++
++        // Optional, non-binding price estimate shown to guests.
++        // Set enabled: true and nightlyRate > 0 to show "Estimated total".
++        pricing: {
++            enabled: false,
++            currency: "THB",
++            nightlyRate: 0
++        },
++
++        // Where booking requests should notionally go. Not used by the
++        // demo submission yet, but kept here so a real integration
++        // (Formspree/EmailJS/Supabase/etc.) has one place to read contact
++        // details from.
++        contact: {
++            email: "",
++            phone: "081 862 5007",
++            line: ""
++        }
++    }
+ };
+\ No newline at end of file
+diff --git a/style.css b/style.css
+index 0007a56..ddbe59a 100644
+--- a/style.css
++++ b/style.css
+@@ -621,6 +621,413 @@ h2 {
+     transform: translateX(3px);
+ }
+ 
++/* BOOKING */
++.booking-panel {
++    display: flex;
++    flex-direction: column;
++    gap: 22px;
++}
++
++.booking-widget {
++    display: grid;
++    grid-template-columns: 1.3fr 0.9fr;
++    gap: 28px;
++    align-items: start;
++    border-radius: 28px;
++    border: 1px solid var(--line);
++    background: rgba(255, 255, 255, 0.5);
++    padding: 28px;
++}
++
++/* Calendar */
++.booking-calendar {
++    border-radius: 20px;
++    background: var(--white);
++    border: 1px solid var(--line);
++    padding: 20px;
++}
++
++.cal-header {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    margin-bottom: 16px;
++}
++
++.cal-month-label {
++    font-family: var(--serif);
++    font-size: 18px;
++    color: var(--green);
++}
++
++.cal-nav {
++    width: 34px;
++    height: 34px;
++    border-radius: 50%;
++    border: 1px solid var(--line);
++    background: transparent;
++    color: var(--green);
++    font-size: 18px;
++    line-height: 1;
++    cursor: pointer;
++    transition: background 0.2s ease, opacity 0.2s ease;
++}
++
++.cal-nav:hover:not(:disabled) {
++    background: rgba(23, 59, 50, 0.08);
++}
++
++.cal-nav:disabled {
++    opacity: 0.25;
++    cursor: not-allowed;
++}
++
++.cal-weekdays {
++    display: grid;
++    grid-template-columns: repeat(7, minmax(0, 1fr));
++    margin-bottom: 6px;
++}
++
++.cal-weekdays span {
++    text-align: center;
++    font-size: 10px;
++    letter-spacing: 1px;
++    text-transform: uppercase;
++    color: var(--muted);
++    padding: 6px 0;
++}
++
++.cal-grid {
++    display: grid;
++    grid-template-columns: repeat(7, minmax(0, 1fr));
++    gap: 4px;
++}
++
++.cal-day {
++    aspect-ratio: 1 / 1;
++    display: flex;
++    align-items: center;
++    justify-content: center;
++    border: 0;
++    border-radius: 12px;
++    background: transparent;
++    color: var(--text);
++    font-size: 13px;
++    cursor: pointer;
++    transition: background 0.2s ease, color 0.2s ease;
++}
++
++.cal-day.is-empty {
++    cursor: default;
++}
++
++.cal-day:not(.is-disabled):not(.is-empty):hover {
++    background: rgba(23, 59, 50, 0.08);
++}
++
++.cal-day.is-disabled {
++    color: var(--muted);
++    opacity: 0.35;
++    cursor: not-allowed;
++}
++
++.cal-day.is-blocked {
++    text-decoration: line-through;
++}
++
++.cal-day.is-in-range {
++    background: rgba(23, 59, 50, 0.1);
++    border-radius: 0;
++}
++
++.cal-day.is-checkin,
++.cal-day.is-checkout {
++    background: var(--green);
++    color: white;
++    font-weight: 500;
++}
++
++.cal-day.is-checkin {
++    border-radius: 12px 0 0 12px;
++}
++
++.cal-day.is-checkout {
++    border-radius: 0 12px 12px 0;
++}
++
++.cal-day.is-checkin.is-checkout {
++    border-radius: 12px;
++}
++
++/* Sidebar: dates + guests + CTA */
++.booking-sidebar {
++    display: flex;
++    flex-direction: column;
++    gap: 20px;
++}
++
++.booking-dates {
++    display: grid;
++    grid-template-columns: 1fr 1fr;
++    border-radius: 18px;
++    border: 1px solid var(--line);
++    background: var(--white);
++    overflow: hidden;
++}
++
++.booking-date-box {
++    padding: 14px 16px;
++    display: flex;
++    flex-direction: column;
++    gap: 6px;
++}
++
++.booking-date-box:first-child {
++    border-right: 1px solid var(--line);
++}
++
++.booking-date-box span {
++    font-size: 10px;
++    letter-spacing: 1.5px;
++    text-transform: uppercase;
++    color: var(--muted);
++}
++
++.booking-date-box strong {
++    font-family: var(--serif);
++    font-weight: 500;
++    font-size: 15px;
++    color: var(--green);
++}
++
++.booking-guests {
++    display: flex;
++    align-items: center;
++    justify-content: space-between;
++    padding: 14px 16px;
++    border-radius: 18px;
++    border: 1px solid var(--line);
++    background: var(--white);
++}
++
++.booking-guests label {
++    font-size: 12px;
++    letter-spacing: 0.5px;
++    color: var(--green);
++}
++
++.guest-stepper {
++    display: flex;
++    align-items: center;
++    gap: 14px;
++}
++
++.guest-btn {
++    width: 32px;
++    height: 32px;
++    border-radius: 50%;
++    border: 1px solid var(--line);
++    background: transparent;
++    color: var(--green);
++    font-size: 16px;
++    line-height: 1;
++    cursor: pointer;
++    transition: background 0.2s ease;
++}
++
++.guest-btn:hover {
++    background: rgba(23, 59, 50, 0.08);
++}
++
++#bookingGuests {
++    width: 26px;
++    text-align: center;
++    border: 0;
++    background: transparent;
++    color: var(--green);
++    font-size: 15px;
++    pointer-events: none;
++}
++
++.booking-message {
++    font-size: 13px;
++    line-height: 1.6;
++    color: #a3402c;
++    background: rgba(163, 64, 44, 0.08);
++    border-radius: 12px;
++    padding: 10px 14px;
++}
++
++.booking-check-btn {
++    width: 100%;
++}
++
++/* Result / request / success panels */
++.booking-result,
++.booking-request,
++.booking-success {
++    border-radius: 28px;
++    border: 1px solid var(--line);
++    background: rgba(255, 255, 255, 0.5);
++    padding: 32px;
++}
++
++.booking-result-state {
++    max-width: 480px;
++}
++
++.booking-result-icon {
++    font-size: 26px;
++    color: var(--green);
++    margin-bottom: 4px;
++}
++
++.booking-result-state h3 {
++    font-family: var(--serif);
++    font-size: 26px;
++    font-weight: 500;
++    color: var(--green);
++    margin-bottom: 10px;
++}
++
++.booking-result-state p {
++    color: var(--muted);
++    line-height: 1.7;
++}
++
++.booking-result-summary {
++    margin-bottom: 16px !important;
++}
++
++.booking-price-estimate {
++    margin: 4px 0 20px !important;
++    font-size: 13px;
++    line-height: 1.7;
++}
++
++.booking-price-estimate strong {
++    color: var(--green);
++}
++
++.booking-result-state .btn {
++    margin-top: 8px;
++}
++
++.booking-request-summary {
++    margin-bottom: 26px;
++}
++
++.booking-summary-title {
++    font-size: 11px;
++    letter-spacing: 1.5px;
++    text-transform: uppercase;
++    color: var(--muted);
++    margin-bottom: 10px;
++}
++
++.booking-summary-rows {
++    display: flex;
++    flex-wrap: wrap;
++    gap: 10px 28px;
++    font-size: 14px;
++    color: var(--text);
++}
++
++.booking-summary-rows strong {
++    color: var(--green);
++}
++
++#bookingRequestForm {
++    display: flex;
++    flex-direction: column;
++    gap: 16px;
++    max-width: 560px;
++}
++
++.form-row {
++    display: flex;
++    flex-direction: column;
++    gap: 6px;
++}
++
++.form-row label {
++    font-size: 12px;
++    letter-spacing: 0.5px;
++    color: var(--green);
++}
++
++.form-row input,
++.form-row textarea {
++    border-radius: 14px;
++    border: 1px solid var(--line);
++    background: var(--white);
++    padding: 12px 14px;
++    color: var(--text);
++    font-size: 14px;
++    resize: vertical;
++}
++
++.form-row input:focus-visible,
++.form-row textarea:focus-visible {
++    outline: 2px solid var(--green);
++    outline-offset: 1px;
++}
++
++.booking-disclaimer {
++    font-size: 12px;
++    line-height: 1.7;
++    color: var(--muted);
++}
++
++.booking-form-actions {
++    display: flex;
++    gap: 12px;
++    margin-top: 4px;
++}
++
++.booking-success {
++    text-align: left;
++    max-width: 560px;
++}
++
++.booking-success h3 {
++    font-family: var(--serif);
++    font-size: 30px;
++    font-weight: 500;
++    color: var(--green);
++    margin-bottom: 8px;
++}
++
++.booking-success-thanks {
++    color: var(--green) !important;
++    font-weight: 500;
++}
++
++.booking-success p {
++    color: var(--muted);
++    line-height: 1.7;
++}
++
++.booking-success-summary {
++    display: flex;
++    flex-wrap: wrap;
++    gap: 10px 28px;
++    margin: 20px 0;
++    padding: 18px 20px;
++    border-radius: 16px;
++    background: var(--white);
++    border: 1px solid var(--line);
++    font-size: 14px;
++}
++
++.booking-success-summary strong {
++    color: var(--green);
++}
++
++.booking-success .btn {
++    margin-top: 8px;
++}
++
+ /* CONTACT */
+ .contact-card {
+     border-radius: 28px;
+@@ -802,6 +1209,10 @@ h2 {
+     .map-frame {
+         min-height: 420px;
+     }
++
++    .booking-widget {
++        grid-template-columns: 1fr;
++    }
+ }
+ 
+ @media (max-width: 800px) {
+@@ -933,6 +1344,25 @@ h2 {
+         right: 6vw;
+         bottom: 22px;
+     }
++
++    .booking-widget {
++        padding: 20px;
++        gap: 20px;
++    }
++
++    .booking-calendar {
++        padding: 14px;
++    }
++
++    .cal-day {
++        font-size: 12px;
++    }
++
++    .booking-result,
++    .booking-request,
++    .booking-success {
++        padding: 24px 20px;
++    }
+ }
+ 
+ @media (max-width: 560px) {
+@@ -979,4 +1409,26 @@ h2 {
+     .contact-actions {
+         width: 100%;
+     }
++
++    .booking-dates {
++        grid-template-columns: 1fr;
++    }
++
++    .booking-date-box:first-child {
++        border-right: 0;
++        border-bottom: 1px solid var(--line);
++    }
++
++    .booking-form-actions {
++        flex-direction: column-reverse;
++    }
++
++    .cal-day {
++        font-size: 11px;
++    }
++
++    .cal-nav {
++        width: 30px;
++        height: 30px;
++    }
+ }
+\ No newline at end of file
+diff --git a/translations.js b/translations.js
+index 9085185..25d8ba5 100644
+--- a/translations.js
++++ b/translations.js
+@@ -39,7 +39,72 @@ const translations = {
+ 
+         footerContact: "Contact",
+         footerSocial: "Social",
+-        footerTemplate: "Villa rental template"
++        footerTemplate: "Villa rental template",
++
++        // BOOKING WIDGET
++        navBooking: "Booking",
++        bookingEyebrow: "CHECK AVAILABILITY",
++        bookingTitle: "Plan your stay.",
++        bookingIntro: "Select your dates and guests to check availability, then send a request — a real person will confirm the details.",
++
++        checkIn: "Check-in",
++        checkOut: "Check-out",
++        checkInLabel: "Check-in",
++        checkOutLabel: "Check-out",
++        selectDate: "Select date",
++        guestsLabel: "Guests",
++
++        checkAvailabilityBtn: "Check Availability",
++        checking: "Checking…",
++
++        availableTitle: "Villa available",
++        unavailableTitle: "Sorry, these dates are unavailable.",
++        unavailableText: "Please choose different dates.",
++        chooseOtherDates: "Choose Different Dates",
++
++        requestToBook: "Request to Book",
++        bookingRequestTitle: "Booking Request",
++        yourStay: "Your stay",
++
++        nameLabel: "Name",
++        emailLabel: "Email",
++        phoneLineLabel: "Phone / LINE",
++        messageLabel: "Message",
++        messageOptional: "Message (optional)",
++        sendBookingRequest: "Send Booking Request",
++        sending: "Sending…",
++        back: "Back",
++
++        bookingDisclaimer: "Your booking is a request and will be confirmed by the property owner.",
++
++        estimatedTotal: "Estimated total",
++        estimateNote: "This is an estimate, not a final price.",
++        nightsLabel: "nights",
++
++        minimumStayMessage: "Minimum stay is {n} nights.",
++        maxGuestsMessage: "This property accommodates up to {n} guests.",
++        selectBothDatesMessage: "Please select a check-in and check-out date.",
++        checkoutAfterCheckinMessage: "Check-out must be after check-in.",
++        pastDateMessage: "Past dates can't be selected.",
++        rangeBlockedMessage: "One or more of those nights is already booked.",
++
++        successTitle: "Booking Request Sent",
++        successThanks: "Thank you!",
++        successReceived: "Your request has been received.",
++        ownerWillContact: "The property owner will contact you to confirm availability and booking details.",
++        backToProperty: "Back to Property",
++
++        formErrorRequired: "Please fill in your name, email and phone / LINE.",
++        formErrorEmail: "Please enter a valid email address.",
++        formErrorGeneric: "Something went wrong. Please try again, or contact us directly.",
++
++        guestsSummary: "guests",
++
++        calendarMonths: [
++            "January", "February", "March", "April", "May", "June",
++            "July", "August", "September", "October", "November", "December"
++        ],
++        calendarWeekdaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+     },
+     th: {
+         navOverview: "ภาพรวม",
+@@ -81,6 +146,71 @@ const translations = {
+ 
+         footerContact: "ติดต่อ",
+         footerSocial: "โซเชียล",
+-        footerTemplate: "เทมเพลตสำหรับปล่อยเช่าวิลล่า"
++        footerTemplate: "เทมเพลตสำหรับปล่อยเช่าวิลล่า",
++
++        // BOOKING WIDGET
++        navBooking: "จองที่พัก",
++        bookingEyebrow: "เช็กห้องว่าง",
++        bookingTitle: "วางแผนการเข้าพักของคุณ",
++        bookingIntro: "เลือกวันที่และจำนวนผู้เข้าพักเพื่อเช็กห้องว่าง จากนั้นส่งคำขอจอง — เจ้าของที่พักจะยืนยันรายละเอียดกับคุณ",
++
++        checkIn: "เช็กอิน",
++        checkOut: "เช็กเอาต์",
++        checkInLabel: "เช็กอิน",
++        checkOutLabel: "เช็กเอาต์",
++        selectDate: "เลือกวันที่",
++        guestsLabel: "ผู้เข้าพัก",
++
++        checkAvailabilityBtn: "เช็กห้องว่าง",
++        checking: "กำลังตรวจสอบ…",
++
++        availableTitle: "วิลล่าว่าง",
++        unavailableTitle: "ขออภัย ช่วงวันที่นี้ไม่ว่าง",
++        unavailableText: "กรุณาเลือกวันที่อื่น",
++        chooseOtherDates: "เลือกวันที่อื่น",
++
++        requestToBook: "ส่งคำขอจอง",
++        bookingRequestTitle: "คำขอจอง",
++        yourStay: "การเข้าพักของคุณ",
++
++        nameLabel: "ชื่อ",
++        emailLabel: "อีเมล",
++        phoneLineLabel: "เบอร์โทร / ไลน์",
++        messageLabel: "ข้อความ",
++        messageOptional: "ข้อความ (ไม่บังคับ)",
++        sendBookingRequest: "ส่งคำขอจอง",
++        sending: "กำลังส่ง…",
++        back: "ย้อนกลับ",
++
++        bookingDisclaimer: "การจองนี้เป็นเพียงคำขอ และจะได้รับการยืนยันจากเจ้าของที่พัก",
++
++        estimatedTotal: "ราคาโดยประมาณ",
++        estimateNote: "นี่คือราคาโดยประมาณ ไม่ใช่ราคาสุดท้าย",
++        nightsLabel: "คืน",
++
++        minimumStayMessage: "ต้องเข้าพักอย่างน้อย {n} คืน",
++        maxGuestsMessage: "ที่พักนี้รองรับผู้เข้าพักได้สูงสุด {n} คน",
++        selectBothDatesMessage: "กรุณาเลือกวันเช็กอินและเช็กเอาต์",
++        checkoutAfterCheckinMessage: "วันเช็กเอาต์ต้องอยู่หลังวันเช็กอิน",
++        pastDateMessage: "ไม่สามารถเลือกวันที่ผ่านมาแล้วได้",
++        rangeBlockedMessage: "มีบางคืนในช่วงที่เลือกถูกจองไว้แล้ว",
++
++        successTitle: "ส่งคำขอจองแล้ว",
++        successThanks: "ขอบคุณค่ะ/ครับ!",
++        successReceived: "เราได้รับคำขอของคุณแล้ว",
++        ownerWillContact: "เจ้าของที่พักจะติดต่อกลับเพื่อยืนยันห้องว่างและรายละเอียดการจอง",
++        backToProperty: "กลับสู่หน้าที่พัก",
++
++        formErrorRequired: "กรุณากรอกชื่อ อีเมล และเบอร์โทร / ไลน์",
++        formErrorEmail: "กรุณากรอกอีเมลที่ถูกต้อง",
++        formErrorGeneric: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง หรือติดต่อเราโดยตรง",
++
++        guestsSummary: "ผู้เข้าพัก",
++
++        calendarMonths: [
++            "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
++            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
++        ],
++        calendarWeekdaysShort: ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"]
+     }
+ };
+\ No newline at end of file

@@ -1,7 +1,27 @@
 // =========================
 // STATE
 // =========================
-let currentLanguage = localStorage.getItem("property-language") || "en";
+
+// localStorage can throw (not just return null) in some contexts — Safari
+// private browsing, sandboxed iframes, file:// origins. Guard it so a
+// storage failure never breaks the whole page.
+function safeStorageGet(key) {
+    try {
+        return window.localStorage.getItem(key);
+    } catch (error) {
+        return null;
+    }
+}
+
+function safeStorageSet(key, value) {
+    try {
+        window.localStorage.setItem(key, value);
+    } catch (error) {
+        // Storage unavailable — language choice just won't persist.
+    }
+}
+
+let currentLanguage = safeStorageGet("property-language") || "en";
 let lightboxIndex = 0;
 
 const navbar = document.querySelector(".navbar");
@@ -154,8 +174,9 @@ function setLanguage(language) {
         button.classList.toggle("active", button.dataset.lang === language);
     });
 
-    localStorage.setItem("property-language", language);
+    safeStorageSet("property-language", language);
     renderStaticContent();
+    refreshBookingTexts();
 }
 
 window.addEventListener("scroll", () => {
@@ -234,5 +255,547 @@ window.addEventListener("keydown", (event) => {
     if (event.key === "ArrowRight") stepLightbox(1);
 });
 
+// =========================
+// BOOKING / AVAILABILITY
+// =========================
+
+const bookingState = {
+    checkIn: null,          // Date
+    checkOut: null,         // Date
+    guests: 1,
+    maxGuests: 1,
+    minimumStay: 1,
+    blockedDates: new Set(), // "YYYY-MM-DD" strings
+    viewMonth: null,         // Date, first of the visible month
+    lastResult: null,        // { available: boolean, nights?: number }
+    messageKey: null,        // last shown validation message key, for re-translation
+    messageParams: null
+};
+
+let bookingInitialized = false;
+
+// --- Availability service abstraction -----------------------------------
+// This is the one place that knows where blocked dates come from. Today it
+// just reads the manually curated list in site-data.js. When a real
+// Airbnb/Booking.com/Agoda/channel-manager sync is added, replace the body
+// of this function with a fetch to that service (parsing iCal, calling an
+// API, etc.) — every caller already awaits it, so no calendar or UI code
+// needs to change.
+async function getBlockedDates() {
+    const config = window.propertyConfig;
+    return (config && config.booking && config.booking.blockedDates) || [];
+}
+
+// --- Date helpers ---------------------------------------------------------
+function startOfDay(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function todayStart() {
+    return startOfDay(new Date());
+}
+
+function formatISODate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function parseISODate(value) {
+    const [y, m, d] = value.split("-").map(Number);
+    return new Date(y, m - 1, d);
+}
+
+function addDays(date, amount) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + amount);
+    return result;
+}
+
+function isSameDate(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function diffInNights(checkIn, checkOut) {
+    return Math.round((startOfDay(checkOut) - startOfDay(checkIn)) / 86400000);
+}
+
+function formatDisplayDate(date) {
+    const months = (translations[currentLanguage] && translations[currentLanguage].calendarMonths) || translations.en.calendarMonths;
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+// --- Translation helper (supports {n}-style placeholders) -----------------
+function t(key, params) {
+    const dict = translations[currentLanguage] || translations.en;
+    let text = dict[key] ?? translations.en[key] ?? "";
+    if (params) {
+        Object.keys(params).forEach(param => {
+            text = text.replace(`{${param}}`, params[param]);
+        });
+    }
+    return text;
+}
+
+// --- Init -------------------------------------------------------------
+async function initBooking() {
+    const config = window.propertyConfig;
+    const bookingSection = document.getElementById("booking");
+    const navBookingLink = document.querySelector('.nav-links a[href="#booking"]');
+
+    if (!config || !config.booking || !config.booking.enabled) {
+        if (bookingSection) bookingSection.style.display = "none";
+        if (navBookingLink) navBookingLink.style.display = "none";
+        return;
+    }
+
+    bookingState.minimumStay = Math.max(1, Number(config.booking.minimumStay) || 1);
+    bookingState.maxGuests = Math.max(1, Number(config.booking.maxGuests) || 1);
+    bookingState.guests = 1;
+    bookingState.viewMonth = todayStart();
+    bookingState.viewMonth.setDate(1);
+
+    const blocked = await getBlockedDates();
+    bookingState.blockedDates = new Set(blocked);
+
+    renderCalendar();
+    updateDateDisplays();
+    bindBookingEvents();
+    bookingInitialized = true;
+}
+
+function bindBookingEvents() {
+    document.getElementById("guestMinus").addEventListener("click", () => changeGuests(-1));
+    document.getElementById("guestPlus").addEventListener("click", () => changeGuests(1));
+    document.getElementById("bookingCheckBtn").addEventListener("click", handleCheckAvailability);
+    document.getElementById("requestToBookBtn").addEventListener("click", showBookingRequestForm);
+    document.getElementById("chooseOtherDatesBtn").addEventListener("click", resetToWidget);
+    document.getElementById("backToResultBtn").addEventListener("click", showResultFromRequest);
+    document.getElementById("bookingRequestForm").addEventListener("submit", handleBookingRequestSubmit);
+    document.getElementById("backToPropertyBtn").addEventListener("click", handleBackToProperty);
+}
+
+// --- Guests -----------------------------------------------------------
+function changeGuests(delta) {
+    const next = bookingState.guests + delta;
+    if (next < 1) return;
+    if (next > bookingState.maxGuests) {
+        showValidationMessage("maxGuestsMessage", { n: bookingState.maxGuests });
+        return;
+    }
+    bookingState.guests = next;
+    document.getElementById("bookingGuests").value = String(next);
+    clearValidationMessage();
+}
+
+// --- Validation message ------------------------------------------------
+function showValidationMessage(key, params) {
+    bookingState.messageKey = key;
+    bookingState.messageParams = params || null;
+    const el = document.getElementById("bookingValidationMessage");
+    el.textContent = t(key, params);
+    el.hidden = false;
+}
+
+function clearValidationMessage() {
+    bookingState.messageKey = null;
+    bookingState.messageParams = null;
+    const el = document.getElementById("bookingValidationMessage");
+    el.textContent = "";
+    el.hidden = true;
+}
+
+// --- Date displays -------------------------------------------------------
+function updateDateDisplays() {
+    const checkInEl = document.getElementById("bookingCheckInDisplay");
+    const checkOutEl = document.getElementById("bookingCheckOutDisplay");
+    checkInEl.textContent = bookingState.checkIn ? formatDisplayDate(bookingState.checkIn) : t("selectDate");
+    checkOutEl.textContent = bookingState.checkOut ? formatDisplayDate(bookingState.checkOut) : t("selectDate");
+}
+
+// --- Calendar -----------------------------------------------------------
+function renderCalendar() {
+    const container = document.getElementById("bookingCalendar");
+    if (!container) return;
+
+    const months = (translations[currentLanguage] && translations[currentLanguage].calendarMonths) || translations.en.calendarMonths;
+    const weekdays = (translations[currentLanguage] && translations[currentLanguage].calendarWeekdaysShort) || translations.en.calendarWeekdaysShort;
+
+    const viewMonth = bookingState.viewMonth;
+    const year = viewMonth.getFullYear();
+    const month = viewMonth.getMonth();
+
+    const today = todayStart();
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+
+    const firstOfMonth = new Date(year, month, 1);
+    // getDay(): 0=Sun..6=Sat -> shift so the grid starts on Monday.
+    const firstWeekday = (firstOfMonth.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    let cells = "";
+    for (let i = 0; i < firstWeekday; i++) {
+        cells += `<span class="cal-day is-empty" aria-hidden="true"></span>`;
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const iso = formatISODate(date);
+        const isPast = date < today;
+        const isBlocked = bookingState.blockedDates.has(iso);
+        const isDisabled = isPast || isBlocked;
+
+        const isCheckIn = bookingState.checkIn && isSameDate(date, bookingState.checkIn);
+        const isCheckOut = bookingState.checkOut && isSameDate(date, bookingState.checkOut);
+        const isInRange = bookingState.checkIn && bookingState.checkOut &&
+            date > bookingState.checkIn && date < bookingState.checkOut;
+
+        const classes = ["cal-day"];
+        if (isDisabled) classes.push("is-disabled");
+        if (isBlocked) classes.push("is-blocked");
+        if (isCheckIn) classes.push("is-checkin");
+        if (isCheckOut) classes.push("is-checkout");
+        if (isInRange) classes.push("is-in-range");
+
+        cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" ${isDisabled ? "disabled" : ""} aria-label="${iso}">${day}</button>`;
+    }
+
+    container.innerHTML = `
+        <div class="cal-header">
+            <button type="button" class="cal-nav cal-prev" aria-label="Previous month" ${isCurrentMonth ? "disabled" : ""}>‹</button>
+            <span class="cal-month-label">${months[month]} ${year}</span>
+            <button type="button" class="cal-nav cal-next" aria-label="Next month">›</button>
+        </div>
+        <div class="cal-weekdays">${weekdays.map(w => `<span>${w}</span>`).join("")}</div>
+        <div class="cal-grid">${cells}</div>
+    `;
+
+    container.querySelector(".cal-prev").addEventListener("click", () => shiftMonth(-1));
+    container.querySelector(".cal-next").addEventListener("click", () => shiftMonth(1));
+
+    container.querySelectorAll(".cal-day:not(.is-empty):not(.is-disabled)").forEach(button => {
+        button.addEventListener("click", () => handleDayClick(button.dataset.date));
+    });
+}
+
+function shiftMonth(delta) {
+    const next = new Date(bookingState.viewMonth);
+    next.setMonth(next.getMonth() + delta);
+    if (next < todayStart()) return;
+    bookingState.viewMonth = next;
+    renderCalendar();
+}
+
+function isRangeClear(checkIn, checkOut) {
+    let cursor = new Date(checkIn);
+    while (cursor < checkOut) {
+        if (bookingState.blockedDates.has(formatISODate(cursor))) return false;
+        cursor = addDays(cursor, 1);
+    }
+    return true;
+}
+
+function handleDayClick(iso) {
+    const date = parseISODate(iso);
+    clearValidationMessage();
+    hideResult();
+
+    const startingFresh = !bookingState.checkIn || bookingState.checkOut;
+
+    if (startingFresh) {
+        bookingState.checkIn = date;
+        bookingState.checkOut = null;
+    } else if (date <= bookingState.checkIn) {
+        // Clicking on or before the current check-in restarts the selection.
+        bookingState.checkIn = date;
+        bookingState.checkOut = null;
+    } else if (!isRangeClear(bookingState.checkIn, date)) {
+        showValidationMessage("rangeBlockedMessage");
+    } else {
+        bookingState.checkOut = date;
+    }
+
+    updateDateDisplays();
+    renderCalendar();
+}
+
+// --- Check availability --------------------------------------------------
+function setCheckButtonLoading(isLoading) {
+    const btn = document.getElementById("bookingCheckBtn");
+    btn.disabled = isLoading;
+    btn.textContent = isLoading ? t("checking") : t("checkAvailabilityBtn");
+}
+
+async function handleCheckAvailability() {
+    clearValidationMessage();
+    hideResult();
+
+    // Full validation runs here too — the calendar UI already prevents most
+    // of this, but the check never relies on the UI alone.
+    if (!bookingState.checkIn || !bookingState.checkOut) {
+        showValidationMessage("selectBothDatesMessage");
+        return;
+    }
+    if (bookingState.checkOut <= bookingState.checkIn) {
+        showValidationMessage("checkoutAfterCheckinMessage");
+        return;
+    }
+    if (bookingState.checkIn < todayStart()) {
+        showValidationMessage("pastDateMessage");
+        return;
+    }
+
+    const nights = diffInNights(bookingState.checkIn, bookingState.checkOut);
+    if (nights < bookingState.minimumStay) {
+        showValidationMessage("minimumStayMessage", { n: bookingState.minimumStay });
+        return;
+    }
+    if (bookingState.guests > bookingState.maxGuests) {
+        showValidationMessage("maxGuestsMessage", { n: bookingState.maxGuests });
+        return;
+    }
+
+    setCheckButtonLoading(true);
+    // Re-read the availability source right before confirming, so a stale
+    // client-side calendar can't show a night as available when it no
+    // longer is. This is also the natural hook for a future live API call.
+    const blocked = await getBlockedDates();
+    bookingState.blockedDates = new Set(blocked);
+    setCheckButtonLoading(false);
+
+    if (!isRangeClear(bookingState.checkIn, bookingState.checkOut)) {
+        renderCalendar();
+        showResultUnavailable();
+        return;
+    }
+
+    showResultAvailable(nights);
+}
+
+function hideResult() {
+    document.getElementById("bookingResult").hidden = true;
+    document.getElementById("bookingAvailableState").hidden = true;
+    document.getElementById("bookingUnavailableState").hidden = true;
+}
+
+function showResultAvailable(nights) {
+    bookingState.lastResult = { available: true, nights };
+
+    document.getElementById("bookingResult").hidden = false;
+    document.getElementById("bookingAvailableState").hidden = false;
+    document.getElementById("bookingUnavailableState").hidden = true;
+
+    renderAvailableSummary();
+    document.getElementById("bookingResult").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function showResultUnavailable() {
+    bookingState.lastResult = { available: false };
+
+    document.getElementById("bookingResult").hidden = false;
+    document.getElementById("bookingAvailableState").hidden = true;
+    document.getElementById("bookingUnavailableState").hidden = false;
+    document.getElementById("bookingResult").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function renderAvailableSummary() {
+    const result = bookingState.lastResult;
+    if (!result || !result.available) return;
+
+    const summaryEl = document.getElementById("bookingAvailableSummary");
+    summaryEl.textContent = `${formatDisplayDate(bookingState.checkIn)} → ${formatDisplayDate(bookingState.checkOut)} · ${result.nights} ${t("nightsLabel")} · ${bookingState.guests} ${t("guestsSummary")}`;
+
+    const priceEl = document.getElementById("bookingPriceEstimate");
+    const pricing = window.propertyConfig && window.propertyConfig.booking && window.propertyConfig.booking.pricing;
+
+    if (pricing && pricing.enabled && pricing.nightlyRate > 0) {
+        const total = pricing.nightlyRate * result.nights;
+        priceEl.innerHTML = `<strong>${t("estimatedTotal")}: ${total.toLocaleString()} ${pricing.currency}</strong><br><span>${t("estimateNote")}</span>`;
+        priceEl.hidden = false;
+    } else {
+        priceEl.hidden = true;
+        priceEl.innerHTML = "";
+    }
+}
+
+function resetToWidget() {
+    bookingState.checkOut = null;
+    hideResult();
+    updateDateDisplays();
+    renderCalendar();
+}
+
+// --- Booking request form -------------------------------------------------
+function showBookingRequestForm() {
+    document.getElementById("bookingRequestSection").hidden = false;
+    document.getElementById("bookingResult").hidden = true;
+    renderRequestSummary();
+    document.getElementById("bookingRequestSection").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function showResultFromRequest() {
+    document.getElementById("bookingRequestSection").hidden = true;
+    document.getElementById("bookingResult").hidden = false;
+}
+
+function renderRequestSummary() {
+    const el = document.getElementById("bookingRequestSummary");
+    if (!bookingState.checkIn || !bookingState.checkOut) return;
+    el.innerHTML = `
+        <p class="booking-summary-title">${t("yourStay")}</p>
+        <div class="booking-summary-rows">
+            <span>${t("checkInLabel")}: <strong>${formatDisplayDate(bookingState.checkIn)}</strong></span>
+            <span>${t("checkOutLabel")}: <strong>${formatDisplayDate(bookingState.checkOut)}</strong></span>
+            <span>${t("guestsLabel")}: <strong>${bookingState.guests}</strong></span>
+        </div>
+    `;
+}
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// --- Form submission -------------------------------------------------
+// Demo submission only, so v1 doesn't need a backend. Replace the body of
+// this function with a real integration when ready — e.g. a Formspree
+// endpoint, an EmailJS send call, or a Supabase/own-API request — and
+// return a rejected Promise on failure. Nothing else needs to change,
+// since every caller already awaits this function.
+async function submitBookingRequest(payload) {
+    console.info("Booking request (demo submission):", payload);
+    return new Promise(resolve => setTimeout(resolve, 600));
+}
+
+async function handleBookingRequestSubmit(event) {
+    event.preventDefault();
+
+    const nameEl = document.getElementById("reqName");
+    const emailEl = document.getElementById("reqEmail");
+    const phoneEl = document.getElementById("reqPhone");
+    const messageEl = document.getElementById("reqMessage");
+    const errorEl = document.getElementById("bookingFormError");
+
+    const name = nameEl.value.trim();
+    const email = emailEl.value.trim();
+    const phone = phoneEl.value.trim();
+    const message = messageEl.value.trim();
+
+    errorEl.hidden = true;
+    errorEl.textContent = "";
+
+    if (!name || !email || !phone) {
+        errorEl.textContent = t("formErrorRequired");
+        errorEl.hidden = false;
+        return;
+    }
+    if (!isValidEmail(email)) {
+        errorEl.textContent = t("formErrorEmail");
+        errorEl.hidden = false;
+        return;
+    }
+    if (!bookingState.checkIn || !bookingState.checkOut) {
+        errorEl.textContent = t("formErrorGeneric");
+        errorEl.hidden = false;
+        return;
+    }
+
+    const payload = {
+        name, email, phone, message,
+        checkIn: formatISODate(bookingState.checkIn),
+        checkOut: formatISODate(bookingState.checkOut),
+        guests: bookingState.guests,
+        property: getText(window.propertyConfig && window.propertyConfig.name)
+    };
+
+    const submitBtn = document.getElementById("sendRequestBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = t("sending");
+
+    try {
+        await submitBookingRequest(payload);
+        document.getElementById("bookingRequestForm").reset();
+        showBookingSuccess();
+    } catch (error) {
+        errorEl.textContent = t("formErrorGeneric");
+        errorEl.hidden = false;
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = t("sendBookingRequest");
+    }
+}
+
+// --- Success --------------------------------------------------------------
+function showBookingSuccess() {
+    document.getElementById("bookingWidget").hidden = true;
+    document.getElementById("bookingResult").hidden = true;
+    document.getElementById("bookingRequestSection").hidden = true;
+
+    renderSuccessSummary();
+
+    document.getElementById("bookingSuccess").hidden = false;
+    document.getElementById("bookingSuccess").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function renderSuccessSummary() {
+    if (!bookingState.checkIn || !bookingState.checkOut) return;
+    const el = document.getElementById("bookingSuccessSummary");
+    el.innerHTML = `
+        <span>${t("checkInLabel")}: <strong>${formatDisplayDate(bookingState.checkIn)}</strong></span>
+        <span>${t("checkOutLabel")}: <strong>${formatDisplayDate(bookingState.checkOut)}</strong></span>
+        <span>${t("guestsLabel")}: <strong>${bookingState.guests}</strong></span>
+    `;
+}
+
+function handleBackToProperty() {
+    document.getElementById("bookingSuccess").hidden = true;
+    document.getElementById("bookingWidget").hidden = false;
+
+    bookingState.checkIn = null;
+    bookingState.checkOut = null;
+    bookingState.guests = 1;
+    bookingState.lastResult = null;
+    document.getElementById("bookingGuests").value = "1";
+
+    clearValidationMessage();
+    hideResult();
+    updateDateDisplays();
+    renderCalendar();
+
+    document.getElementById("overview").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// --- Re-translate dynamic booking content on language switch --------------
+function refreshBookingTexts() {
+    if (!bookingInitialized) return;
+
+    renderCalendar();
+    updateDateDisplays();
+
+    if (bookingState.messageKey) {
+        document.getElementById("bookingValidationMessage").textContent = t(bookingState.messageKey, bookingState.messageParams);
+    }
+
+    if (bookingState.lastResult && bookingState.lastResult.available) {
+        renderAvailableSummary();
+    }
+
+    const requestSection = document.getElementById("bookingRequestSection");
+    if (requestSection && !requestSection.hidden) {
+        renderRequestSummary();
+    }
+
+    const successSection = document.getElementById("bookingSuccess");
+    if (successSection && !successSection.hidden) {
+        renderSuccessSummary();
+    }
+
+    const checkBtn = document.getElementById("bookingCheckBtn");
+    if (checkBtn && !checkBtn.disabled) {
+        checkBtn.textContent = t("checkAvailabilityBtn");
+    }
+}
+
 // INIT
 setLanguage(currentLanguage);
+initBooking();
