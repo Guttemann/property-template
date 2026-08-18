@@ -82,11 +82,16 @@ const translations = {
         nightsLabel: "nights",
 
         minimumStayMessage: "Minimum stay is {n} nights.",
+        maximumStayMessage: "Maximum stay is {n} nights.",
         maxGuestsMessage: "This property accommodates up to {n} guests.",
         selectBothDatesMessage: "Please select a check-in and check-out date.",
         checkoutAfterCheckinMessage: "Check-out must be after check-in.",
         pastDateMessage: "Past dates can't be selected.",
         rangeBlockedMessage: "One or more of those nights is already booked.",
+
+        cleaningFeeLabel: "Cleaning fee",
+        serviceFeeLabel: "Service fee",
+        perNightSuffix: "/ night",
 
         successTitle: "Booking Request Sent",
         successThanks: "Thank you!",
@@ -189,11 +194,16 @@ const translations = {
         nightsLabel: "คืน",
 
         minimumStayMessage: "ต้องเข้าพักอย่างน้อย {n} คืน",
+        maximumStayMessage: "เข้าพักได้สูงสุด {n} คืน",
         maxGuestsMessage: "ที่พักนี้รองรับผู้เข้าพักได้สูงสุด {n} คน",
         selectBothDatesMessage: "กรุณาเลือกวันเช็กอินและเช็กเอาต์",
         checkoutAfterCheckinMessage: "วันเช็กเอาต์ต้องอยู่หลังวันเช็กอิน",
         pastDateMessage: "ไม่สามารถเลือกวันที่ผ่านมาแล้วได้",
         rangeBlockedMessage: "มีบางคืนในช่วงที่เลือกถูกจองไว้แล้ว",
+
+        cleaningFeeLabel: "ค่าทำความสะอาด",
+        serviceFeeLabel: "ค่าบริการ",
+        perNightSuffix: "/ คืน",
 
         successTitle: "ส่งคำขอจองแล้ว",
         successThanks: "ขอบคุณค่ะ/ครับ!",

@@ -87,32 +87,48 @@ window.propertyConfig = {
     // BOOKING / AVAILABILITY
     // This is v1 of the booking system: manual blocked dates, no live
     // channel-manager sync yet. Everything the calendar/UI needs is read
-    // through getBlockedDates() in script.js, so this array can later be
-    // replaced by data pulled from an Airbnb/Booking.com/Agoda iCal feed or
-    // a channel-manager API without touching any UI code.
+    // through getBlockedDates() in script.js, so this data can later be
+    // replaced by an Airbnb/Booking.com/Agoda iCal feed or a
+    // channel-manager API without touching any UI code.
+    //
+    // Reusing this template for another villa? You should only need to
+    // change the values in this block (plus branding/images elsewhere).
     booking: {
         enabled: true,
 
-        // Dates guests cannot book, in "YYYY-MM-DD" format.
-        blockedDates: [
-            "2026-08-20",
-            "2026-08-21",
-            "2026-09-05"
-        ],
+        // --- Pricing shown to guests -----------------------------------
+        // Set pricePerNight to 0 to hide all price display (calendar still
+        // works — useful for owners who prefer to quote manually).
+        currency: "THB",
+        pricePerNight: 5000, // TODO: set the real nightly rate
+        cleaningFee: 0,
+        serviceFee: 0,
 
-        // Smallest number of consecutive nights allowed per stay.
+        // --- Stay rules ---------------------------------------------------
         minimumStay: 1,
+        maximumStay: null, // null = no maximum
 
         // Maximum guests the property can host. Keep in sync with the
         // "guests" fact above if that changes.
-        maxGuests: 15,
+        maximumGuests: 15,
 
-        // Optional, non-binding price estimate shown to guests.
-        // Set enabled: true and nightlyRate > 0 to show "Estimated total".
-        pricing: {
-            enabled: false,
-            currency: "THB",
-            nightlyRate: 0
+        // --- Blocked dates --------------------------------------------
+        // Each entry is either a single "YYYY-MM-DD" date, or a
+        // { from, to } range (inclusive) for blocking several nights at
+        // once — handy for testing and for manually blocking a longer
+        // period. Both forms can be mixed freely.
+        blockedDates: [
+            { from: "2026-08-20", to: "2026-08-21" },
+            "2026-09-05"
+        ],
+
+        // --- Phase 2 placeholders --------------------------------------
+        // Not read by any code yet. Kept here so the real integrations
+        // have one obvious place to be configured when they're built —
+        // see getBlockedDates() in script.js for where they'll be wired in.
+        integrations: {
+            airbnb: { enabled: false, calendarUrl: "" },
+            bookingCom: { enabled: false, calendarUrl: "" }
         },
 
         // Where booking requests should notionally go. Not used by the

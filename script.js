@@ -265,6 +265,7 @@ const bookingState = {
     guests: 1,
     maxGuests: 1,
     minimumStay: 1,
+    maximumStay: null,      // number of nights, or null = no maximum
     blockedDates: new Set(), // "YYYY-MM-DD" strings
     viewMonth: null,         // Date, first of the visible month
     lastResult: null,        // { available: boolean, nights?: number }
@@ -277,13 +278,36 @@ let bookingInitialized = false;
 // --- Availability service abstraction -----------------------------------
 // This is the one place that knows where blocked dates come from. Today it
 // just reads the manually curated list in site-data.js. When a real
-// Airbnb/Booking.com/Agoda/channel-manager sync is added, replace the body
-// of this function with a fetch to that service (parsing iCal, calling an
-// API, etc.) — every caller already awaits it, so no calendar or UI code
-// needs to change.
+// Airbnb/Booking.com/Agoda/channel-manager sync is added (see
+// config.booking.integrations), replace the body of this function with a
+// fetch to that service (parsing iCal, calling an API, etc.) — every caller
+// already awaits it and runs the result through expandBlockedDates(), so no
+// calendar or UI code needs to change.
 async function getBlockedDates() {
     const config = window.propertyConfig;
     return (config && config.booking && config.booking.blockedDates) || [];
+}
+
+// Blocked-date entries can be a single "YYYY-MM-DD" string or a
+// { from, to } range (inclusive) — this expands both into one flat Set of
+// ISO date strings that the calendar can check in O(1). Keeping this
+// separate from getBlockedDates() means a future iCal/API source can return
+// either shape too, with no changes needed here.
+function expandBlockedDates(rawList) {
+    const dates = new Set();
+    (rawList || []).forEach(entry => {
+        if (typeof entry === "string") {
+            dates.add(entry);
+        } else if (entry && entry.from && entry.to) {
+            let cursor = parseISODate(entry.from);
+            const end = parseISODate(entry.to);
+            while (cursor <= end) {
+                dates.add(formatISODate(cursor));
+                cursor = addDays(cursor, 1);
+            }
+        }
+    });
+    return dates;
 }
 
 // --- Date helpers ---------------------------------------------------------
@@ -351,16 +375,18 @@ async function initBooking() {
     }
 
     bookingState.minimumStay = Math.max(1, Number(config.booking.minimumStay) || 1);
-    bookingState.maxGuests = Math.max(1, Number(config.booking.maxGuests) || 1);
+    bookingState.maximumStay = config.booking.maximumStay != null ? Math.max(bookingState.minimumStay, Number(config.booking.maximumStay) || 0) : null;
+    bookingState.maxGuests = Math.max(1, Number(config.booking.maximumGuests) || 1);
     bookingState.guests = 1;
     bookingState.viewMonth = todayStart();
     bookingState.viewMonth.setDate(1);
 
     const blocked = await getBlockedDates();
-    bookingState.blockedDates = new Set(blocked);
+    bookingState.blockedDates = expandBlockedDates(blocked);
 
     renderCalendar();
     updateDateDisplays();
+    updateRateNote();
     bindBookingEvents();
     bookingInitialized = true;
 }
@@ -482,7 +508,9 @@ function renderCalendar() {
 function shiftMonth(delta) {
     const next = new Date(bookingState.viewMonth);
     next.setMonth(next.getMonth() + delta);
-    if (next < todayStart()) return;
+    const currentMonthStart = todayStart();
+    currentMonthStart.setDate(1);
+    if (next < currentMonthStart) return;
     bookingState.viewMonth = next;
     renderCalendar();
 }
@@ -551,6 +579,10 @@ async function handleCheckAvailability() {
         showValidationMessage("minimumStayMessage", { n: bookingState.minimumStay });
         return;
     }
+    if (bookingState.maximumStay != null && nights > bookingState.maximumStay) {
+        showValidationMessage("maximumStayMessage", { n: bookingState.maximumStay });
+        return;
+    }
     if (bookingState.guests > bookingState.maxGuests) {
         showValidationMessage("maxGuestsMessage", { n: bookingState.maxGuests });
         return;
@@ -561,7 +593,7 @@ async function handleCheckAvailability() {
     // client-side calendar can't show a night as available when it no
     // longer is. This is also the natural hook for a future live API call.
     const blocked = await getBlockedDates();
-    bookingState.blockedDates = new Set(blocked);
+    bookingState.blockedDates = expandBlockedDates(blocked);
     setCheckButtonLoading(false);
 
     if (!isRangeClear(bookingState.checkIn, bookingState.checkOut)) {
@@ -599,6 +631,66 @@ function showResultUnavailable() {
     document.getElementById("bookingResult").scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+// --- Price calculation ---------------------------------------------------
+// Single source of truth for turning a number of nights into a price
+// breakdown. Every display surface (result panel, request summary, success
+// summary) and the booking-request payload all call this, so the pricing
+// rules only live in one place. All values come straight from
+// site-data.js — nothing is hardcoded here.
+function calculateBookingPrice(nights) {
+    const booking = (window.propertyConfig && window.propertyConfig.booking) || {};
+    const currency = booking.currency || "";
+    const pricePerNight = Number(booking.pricePerNight) || 0;
+    const cleaningFee = Number(booking.cleaningFee) || 0;
+    const serviceFee = Number(booking.serviceFee) || 0;
+    const roomTotal = pricePerNight * nights;
+    const total = roomTotal + cleaningFee + serviceFee;
+    return { currency, pricePerNight, nights, roomTotal, cleaningFee, serviceFee, total };
+}
+
+function formatMoney(amount, currency) {
+    return `${Number(amount).toLocaleString()}${currency ? " " + currency : ""}`;
+}
+
+// Renders the price breakdown as HTML rows (rate × nights, fees, total).
+// Returns "" when no per-night rate is configured, so a property that
+// isn't ready to show pricing yet can just leave pricePerNight at 0 — the
+// calendar and request flow keep working without it.
+function renderPriceBreakdownHTML(nights) {
+    const price = calculateBookingPrice(nights);
+    if (price.pricePerNight <= 0) return "";
+
+    let rows = `<div class="price-row"><span>${formatMoney(price.pricePerNight, price.currency)} × ${nights} ${t("nightsLabel")}</span><span>${formatMoney(price.roomTotal, price.currency)}</span></div>`;
+
+    if (price.cleaningFee > 0) {
+        rows += `<div class="price-row"><span>${t("cleaningFeeLabel")}</span><span>${formatMoney(price.cleaningFee, price.currency)}</span></div>`;
+    }
+    if (price.serviceFee > 0) {
+        rows += `<div class="price-row"><span>${t("serviceFeeLabel")}</span><span>${formatMoney(price.serviceFee, price.currency)}</span></div>`;
+    }
+
+    rows += `<div class="price-row is-total"><span>${t("estimatedTotal")}</span><span>${formatMoney(price.total, price.currency)}</span></div>`;
+
+    return `<div class="booking-price-breakdown">${rows}</div><p class="booking-price-note">${t("estimateNote")}</p>`;
+}
+
+// Small always-visible "X THB / night" hint shown in the sidebar before the
+// guest has even picked dates. Hidden entirely when pricePerNight is 0.
+function updateRateNote() {
+    const el = document.getElementById("bookingRateNote");
+    if (!el) return;
+    const booking = (window.propertyConfig && window.propertyConfig.booking) || {};
+    const pricePerNight = Number(booking.pricePerNight) || 0;
+
+    if (pricePerNight <= 0) {
+        el.hidden = true;
+        el.textContent = "";
+        return;
+    }
+    el.innerHTML = `<strong>${formatMoney(pricePerNight, booking.currency)}</strong> ${t("perNightSuffix")}`;
+    el.hidden = false;
+}
+
 function renderAvailableSummary() {
     const result = bookingState.lastResult;
     if (!result || !result.available) return;
@@ -607,16 +699,9 @@ function renderAvailableSummary() {
     summaryEl.textContent = `${formatDisplayDate(bookingState.checkIn)} → ${formatDisplayDate(bookingState.checkOut)} · ${result.nights} ${t("nightsLabel")} · ${bookingState.guests} ${t("guestsSummary")}`;
 
     const priceEl = document.getElementById("bookingPriceEstimate");
-    const pricing = window.propertyConfig && window.propertyConfig.booking && window.propertyConfig.booking.pricing;
-
-    if (pricing && pricing.enabled && pricing.nightlyRate > 0) {
-        const total = pricing.nightlyRate * result.nights;
-        priceEl.innerHTML = `<strong>${t("estimatedTotal")}: ${total.toLocaleString()} ${pricing.currency}</strong><br><span>${t("estimateNote")}</span>`;
-        priceEl.hidden = false;
-    } else {
-        priceEl.hidden = true;
-        priceEl.innerHTML = "";
-    }
+    const breakdown = renderPriceBreakdownHTML(result.nights);
+    priceEl.innerHTML = breakdown;
+    priceEl.hidden = !breakdown;
 }
 
 function resetToWidget() {
@@ -642,6 +727,7 @@ function showResultFromRequest() {
 function renderRequestSummary() {
     const el = document.getElementById("bookingRequestSummary");
     if (!bookingState.checkIn || !bookingState.checkOut) return;
+    const nights = diffInNights(bookingState.checkIn, bookingState.checkOut);
     el.innerHTML = `
         <p class="booking-summary-title">${t("yourStay")}</p>
         <div class="booking-summary-rows">
@@ -649,6 +735,7 @@ function renderRequestSummary() {
             <span>${t("checkOutLabel")}: <strong>${formatDisplayDate(bookingState.checkOut)}</strong></span>
             <span>${t("guestsLabel")}: <strong>${bookingState.guests}</strong></span>
         </div>
+        ${renderPriceBreakdownHTML(nights)}
     `;
 }
 
@@ -700,11 +787,14 @@ async function handleBookingRequestSubmit(event) {
         return;
     }
 
+    const nights = diffInNights(bookingState.checkIn, bookingState.checkOut);
     const payload = {
         name, email, phone, message,
         checkIn: formatISODate(bookingState.checkIn),
         checkOut: formatISODate(bookingState.checkOut),
+        nights,
         guests: bookingState.guests,
+        price: calculateBookingPrice(nights),
         property: getText(window.propertyConfig && window.propertyConfig.name)
     };
 
@@ -739,11 +829,15 @@ function showBookingSuccess() {
 
 function renderSuccessSummary() {
     if (!bookingState.checkIn || !bookingState.checkOut) return;
+    const nights = diffInNights(bookingState.checkIn, bookingState.checkOut);
     const el = document.getElementById("bookingSuccessSummary");
     el.innerHTML = `
-        <span>${t("checkInLabel")}: <strong>${formatDisplayDate(bookingState.checkIn)}</strong></span>
-        <span>${t("checkOutLabel")}: <strong>${formatDisplayDate(bookingState.checkOut)}</strong></span>
-        <span>${t("guestsLabel")}: <strong>${bookingState.guests}</strong></span>
+        <div class="booking-summary-rows">
+            <span>${t("checkInLabel")}: <strong>${formatDisplayDate(bookingState.checkIn)}</strong></span>
+            <span>${t("checkOutLabel")}: <strong>${formatDisplayDate(bookingState.checkOut)}</strong></span>
+            <span>${t("guestsLabel")}: <strong>${bookingState.guests}</strong></span>
+        </div>
+        ${renderPriceBreakdownHTML(nights)}
     `;
 }
 
@@ -771,6 +865,7 @@ function refreshBookingTexts() {
 
     renderCalendar();
     updateDateDisplays();
+    updateRateNote();
 
     if (bookingState.messageKey) {
         document.getElementById("bookingValidationMessage").textContent = t(bookingState.messageKey, bookingState.messageParams);
