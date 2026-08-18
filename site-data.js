@@ -100,7 +100,7 @@ window.propertyConfig = {
         // Set pricePerNight to 0 to hide all price display (calendar still
         // works — useful for owners who prefer to quote manually).
         currency: "THB",
-        pricePerNight: 5000, // TODO: set the real nightly rate
+        pricePerNight: 10000, // TODO: set the real nightly rate
         cleaningFee: 0,
         serviceFee: 0,
 
