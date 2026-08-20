@@ -499,136 +499,12 @@ async function getBlockedDates() {
     return (config && config.booking && config.booking.blockedDates) || [];
 }
 
-// Blocked-date entries can be a single "YYYY-MM-DD" string or a
-// { from, to } range (inclusive) — this expands both into one flat Set of
-// ISO date strings that the calendar can check in O(1). Keeping this
-// separate from getBlockedDates() means a future iCal/API source can return
-// either shape too, with no changes needed here.
-//
-// Each date in the returned Set means "the night starting on this date is
-// occupied" — it does not mean the calendar day is fully closed. The day
-// right after a range's `to` is deliberately left out, so it stays open as
-// a check-in for the next guest, and renderCalendar() separately allows a
-// blocked date to still be picked as a check-out (see isCheckoutCandidate
-// there) — together that's what makes back-to-back turnover days work.
-//
-// site-data.js is hand-edited per property, so entries here can be
-// malformed in ways nothing else catches: a typo'd date, a reversed range,
-// the wrong shape entirely. A malformed entry that silently disappears is
-// dangerous in the "open" direction — the calendar shows the night as
-// available and a guest can double-book it — so every entry is validated
-// and anything that doesn't check out is dropped with a console.warn
-// (never guessed at, never left to throw).
-const BLOCKED_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_BLOCKED_RANGE_NIGHTS = 730; // ~2 years; catches a typo'd year turning one range into a huge/frozen block
-const DEFAULT_BOOKING_HORIZON_MONTHS = 12;
-
-// Rejects anything that isn't a real calendar date in "YYYY-MM-DD" form —
-// including strings like "2026-02-30" that the regex lets through but that
-// the Date constructor would otherwise silently normalize to March 2.
-function isValidISODateString(value) {
-    if (typeof value !== "string" || !BLOCKED_DATE_RE.test(value)) return false;
-    return formatISODate(parseISODate(value)) === value;
-}
-
-function expandBlockedDates(rawList) {
-    const dates = new Set();
-
-    if (!Array.isArray(rawList)) {
-        if (rawList != null) {
-            console.warn(`Invalid booking.blockedDates (${JSON.stringify(rawList)}); expected an array. Treating as no blocked dates.`);
-        }
-        return dates;
-    }
-
-    rawList.forEach(entry => {
-        if (typeof entry === "string") {
-            if (!isValidISODateString(entry)) {
-                console.warn(`Invalid blocked date ${JSON.stringify(entry)}; expected a real calendar date as "YYYY-MM-DD". Skipping.`);
-                return;
-            }
-            dates.add(entry);
-            return;
-        }
-
-        if (entry && typeof entry === "object" && ("from" in entry || "to" in entry)) {
-            if (!isValidISODateString(entry.from) || !isValidISODateString(entry.to)) {
-                console.warn(`Invalid blocked date range ${JSON.stringify(entry)}; "from" and "to" must both be real calendar dates as "YYYY-MM-DD". Skipping.`);
-                return;
-            }
-
-            const start = parseISODate(entry.from);
-            const end = parseISODate(entry.to);
-            if (start > end) {
-                console.warn(`Invalid blocked date range ${JSON.stringify(entry)}; "from" is after "to". Skipping rather than guessing the intended order.`);
-                return;
-            }
-
-            const nights = Math.round((end - start) / 86400000) + 1;
-            if (nights > MAX_BLOCKED_RANGE_NIGHTS) {
-                console.warn(`Blocked date range ${JSON.stringify(entry)} spans ${nights} nights, over the ${MAX_BLOCKED_RANGE_NIGHTS}-night limit (check for a typo'd year). Skipping.`);
-                return;
-            }
-
-            let cursor = start;
-            while (cursor <= end) {
-                dates.add(formatISODate(cursor));
-                cursor = addDays(cursor, 1);
-            }
-            return;
-        }
-
-        console.warn(`Invalid blocked date entry ${JSON.stringify(entry)}; expected a "YYYY-MM-DD" string or a { from, to } object. Skipping.`);
-    });
-
-    return dates;
-}
-
-// --- Date helpers ---------------------------------------------------------
-function startOfDay(date) {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function todayStart() {
-    return startOfDay(new Date());
-}
-
-function formatISODate(date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
-
-function parseISODate(value) {
-    const [y, m, d] = value.split("-").map(Number);
-    return new Date(y, m - 1, d);
-}
-
-function addDays(date, amount) {
-    const result = new Date(date);
-    result.setDate(result.getDate() + amount);
-    return result;
-}
-
-// Last selectable check-in date, or null if there's no horizon. Uses the
-// same setMonth() arithmetic as shiftMonth() elsewhere in this file, so a
-// horizon crossing a short month (e.g. today = Jan 31, +1 month) rolls over
-// consistently with how month navigation already behaves.
-function computeMaxCheckInDate(bookingHorizonMonths) {
-    if (bookingHorizonMonths == null) return null;
-    const max = todayStart();
-    max.setMonth(max.getMonth() + bookingHorizonMonths);
-    return max;
-}
-
-function isSameDate(a, b) {
-    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function diffInNights(checkIn, checkOut) {
-    return Math.round((startOfDay(checkOut) - startOfDay(checkIn)) / 86400000);
-}
+// Date/blocked-dates helpers (formatISODate, parseISODate, addDays,
+// startOfDay, todayStart, isSameDate, diffInNights, isValidISODateString,
+// expandBlockedDates, computeMaxCheckInDate, isRangeClear) now live in
+// booking-logic.js, loaded before this file, so they can be unit-tested in
+// Node without a DOM — see tests/dates.test.js. They're still plain
+// globals here at runtime, unchanged at every call site below.
 
 function formatDisplayDate(date) {
     const months = (translations[currentLanguage] && translations[currentLanguage].calendarMonths) || translations.en.calendarMonths;
@@ -659,45 +535,17 @@ async function initBooking() {
         return;
     }
 
-    bookingState.minimumStay = Math.max(1, Number(config.booking.minimumStay) || 1);
-
-    const rawMaximumStay = config.booking.maximumStay;
-    if (rawMaximumStay == null) {
-        bookingState.maximumStay = null;
-    } else {
-        const parsedMaximumStay = Number(rawMaximumStay);
-        if (!Number.isFinite(parsedMaximumStay) || parsedMaximumStay < bookingState.minimumStay) {
-            // Fails open to "no maximum" instead of clamping to minimumStay, which would
-            // silently reject nearly every booking under a typo'd config.
-            console.warn(`Invalid booking.maximumStay (${JSON.stringify(rawMaximumStay)}); treating as no maximum.`);
-            bookingState.maximumStay = null;
-        } else {
-            bookingState.maximumStay = parsedMaximumStay;
-        }
-    }
-
-    const rawBookingHorizonMonths = config.booking.bookingHorizonMonths;
-    if (rawBookingHorizonMonths === null) {
-        // Explicit opt-out — property owner deliberately wants no horizon.
-        bookingState.bookingHorizonMonths = null;
-    } else if (rawBookingHorizonMonths === undefined) {
-        bookingState.bookingHorizonMonths = DEFAULT_BOOKING_HORIZON_MONTHS;
-    } else {
-        const parsedBookingHorizonMonths = Number(rawBookingHorizonMonths);
-        if (!Number.isFinite(parsedBookingHorizonMonths) || parsedBookingHorizonMonths <= 0) {
-            // Fails open to the safe default rather than "no horizon" — unlike
-            // maximumStay, the open/unlimited direction here is the risky one
-            // (see bookingHorizonMonths comment in site-data.js), so a typo'd
-            // config shouldn't silently remove the guardrail.
-            console.warn(`Invalid booking.bookingHorizonMonths (${JSON.stringify(rawBookingHorizonMonths)}); using the default of ${DEFAULT_BOOKING_HORIZON_MONTHS} months.`);
-            bookingState.bookingHorizonMonths = DEFAULT_BOOKING_HORIZON_MONTHS;
-        } else {
-            bookingState.bookingHorizonMonths = parsedBookingHorizonMonths;
-        }
-    }
+    // minimumStay/maximumStay/bookingHorizonMonths/maximumGuests parsing
+    // (parseMinimumStay/parseMaximumStay/parseBookingHorizonMonths/
+    // parseMaximumGuests) now lives in booking-logic.js, loaded before this
+    // file — see tests/booking-rules.test.js for coverage of the fallback
+    // behavior for each. Logic and console.warn messages are unchanged.
+    bookingState.minimumStay = parseMinimumStay(config.booking.minimumStay);
+    bookingState.maximumStay = parseMaximumStay(config.booking.maximumStay, bookingState.minimumStay);
+    bookingState.bookingHorizonMonths = parseBookingHorizonMonths(config.booking.bookingHorizonMonths);
     bookingState.maxCheckInDate = computeMaxCheckInDate(bookingState.bookingHorizonMonths);
 
-    bookingState.maxGuests = Math.max(1, Number(config.booking.maximumGuests) || 1);
+    bookingState.maxGuests = parseMaximumGuests(config.booking.maximumGuests);
     bookingState.guests = 1;
     bookingState.viewMonth = todayStart();
     bookingState.viewMonth.setDate(1);
@@ -879,15 +727,6 @@ function shiftMonth(delta) {
     renderCalendar();
 }
 
-function isRangeClear(checkIn, checkOut) {
-    let cursor = new Date(checkIn);
-    while (cursor < checkOut) {
-        if (bookingState.blockedDates.has(formatISODate(cursor))) return false;
-        cursor = addDays(cursor, 1);
-    }
-    return true;
-}
-
 function handleDayClick(iso) {
     const date = parseISODate(iso);
     clearValidationMessage();
@@ -902,7 +741,7 @@ function handleDayClick(iso) {
         // Clicking on or before the current check-in restarts the selection.
         bookingState.checkIn = date;
         bookingState.checkOut = null;
-    } else if (!isRangeClear(bookingState.checkIn, date)) {
+    } else if (!isRangeClear(bookingState.checkIn, date, bookingState.blockedDates)) {
         showValidationMessage("rangeBlockedMessage");
     } else {
         bookingState.checkOut = date;
@@ -966,7 +805,7 @@ async function handleCheckAvailability() {
     bookingState.blockedDates = expandBlockedDates(blocked);
     setCheckButtonLoading(false);
 
-    if (!isRangeClear(bookingState.checkIn, bookingState.checkOut)) {
+    if (!isRangeClear(bookingState.checkIn, bookingState.checkOut, bookingState.blockedDates)) {
         renderCalendar();
         showResultUnavailable();
         return;
@@ -1002,48 +841,12 @@ function showResultUnavailable() {
 }
 
 // --- Price calculation ---------------------------------------------------
-// Single source of truth for turning a number of nights into a price
-// breakdown. Every display surface (result panel, request summary, success
-// summary) and the booking-request payload all call this, so the pricing
-// rules only live in one place. All values come straight from
-// site-data.js — nothing is hardcoded here.
-function calculateBookingPrice(nights) {
-    const booking = (window.propertyConfig && window.propertyConfig.booking) || {};
-    const currency = booking.currency || "";
-    const pricePerNight = Number(booking.pricePerNight) || 0;
-    const cleaningFee = Number(booking.cleaningFee) || 0;
-    const serviceFee = Number(booking.serviceFee) || 0;
-    const roomTotal = pricePerNight * nights;
-    const total = roomTotal + cleaningFee + serviceFee;
-    return { currency, pricePerNight, nights, roomTotal, cleaningFee, serviceFee, total };
-}
-
-// Fallback locale for number formatting when booking.numberLocales in
-// site-data.js is missing, missing an entry for the current language, or
-// contains a locale string toLocaleString() rejects. Keeps price display
-// from ever breaking over a config typo.
-const DEFAULT_NUMBER_LOCALE = "en-US";
-
-// Locale used for number formatting, keyed by the site's own language
-// toggle — not the visitor's browser/OS locale. That keeps grouping and
-// decimal separators identical for every guest regardless of their device
-// settings, and still follows the EN/TH choice made on the page. Read from
-// site-data.js (booking.numberLocales) so a property with a different
-// language/locale pairing doesn't require a script.js change.
-function formatMoney(amount, currency) {
-    const numberLocales = (window.propertyConfig && window.propertyConfig.booking && window.propertyConfig.booking.numberLocales) || {};
-    const locale = numberLocales[currentLanguage] || numberLocales.en || DEFAULT_NUMBER_LOCALE;
-
-    let formatted;
-    try {
-        formatted = Number(amount).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    } catch (error) {
-        console.warn(`Invalid booking.numberLocales value (${JSON.stringify(locale)}) for language "${currentLanguage}"; falling back to "${DEFAULT_NUMBER_LOCALE}".`, error);
-        formatted = Number(amount).toLocaleString(DEFAULT_NUMBER_LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    }
-
-    return `${formatted}${currency ? " " + currency : ""}`;
-}
+// calculateBookingPrice() and formatMoney() now live in booking-logic.js,
+// loaded before this file — see tests/price.test.js for coverage
+// (normal/multi-night pricing, fees, zero-price, EN/TH formatting and its
+// fallback paths). formatMoney() takes the active language explicitly as
+// its third argument here (currentLanguage) rather than reading it as an
+// implicit global, so it stays a pure, standalone function.
 
 // Renders the price breakdown as HTML rows (rate × nights, fees, total).
 // Returns "" when no per-night rate is configured, so a property that
@@ -1053,16 +856,16 @@ function renderPriceBreakdownHTML(nights) {
     const price = calculateBookingPrice(nights);
     if (price.pricePerNight <= 0) return "";
 
-    let rows = `<div class="price-row"><span>${formatMoney(price.pricePerNight, price.currency)} × ${nights} ${t("nightsLabel")}</span><span>${formatMoney(price.roomTotal, price.currency)}</span></div>`;
+    let rows = `<div class="price-row"><span>${formatMoney(price.pricePerNight, price.currency, currentLanguage)} × ${nights} ${t("nightsLabel")}</span><span>${formatMoney(price.roomTotal, price.currency, currentLanguage)}</span></div>`;
 
     if (price.cleaningFee > 0) {
-        rows += `<div class="price-row"><span>${t("cleaningFeeLabel")}</span><span>${formatMoney(price.cleaningFee, price.currency)}</span></div>`;
+        rows += `<div class="price-row"><span>${t("cleaningFeeLabel")}</span><span>${formatMoney(price.cleaningFee, price.currency, currentLanguage)}</span></div>`;
     }
     if (price.serviceFee > 0) {
-        rows += `<div class="price-row"><span>${t("serviceFeeLabel")}</span><span>${formatMoney(price.serviceFee, price.currency)}</span></div>`;
+        rows += `<div class="price-row"><span>${t("serviceFeeLabel")}</span><span>${formatMoney(price.serviceFee, price.currency, currentLanguage)}</span></div>`;
     }
 
-    rows += `<div class="price-row is-total"><span>${t("estimatedTotal")}</span><span>${formatMoney(price.total, price.currency)}</span></div>`;
+    rows += `<div class="price-row is-total"><span>${t("estimatedTotal")}</span><span>${formatMoney(price.total, price.currency, currentLanguage)}</span></div>`;
 
     return `<div class="booking-price-breakdown">${rows}</div><p class="booking-price-note">${t("estimateNote")}</p>`;
 }
@@ -1080,7 +883,7 @@ function updateRateNote() {
         el.textContent = "";
         return;
     }
-    el.innerHTML = `<strong>${formatMoney(pricePerNight, booking.currency)}</strong> ${t("perNightSuffix")}`;
+    el.innerHTML = `<strong>${formatMoney(pricePerNight, booking.currency, currentLanguage)}</strong> ${t("perNightSuffix")}`;
     el.hidden = false;
 }
 
@@ -1132,11 +935,9 @@ function renderRequestSummary() {
     `;
 }
 
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 // --- Form submission -------------------------------------------------
+// isValidEmail() now lives in booking-logic.js — see tests/price.test.js
+// (unchanged, still a plain global here).
 // v1 integration: submits the booking request to Formspree as JSON.
 // Throws on failure so handleBookingRequestSubmit's catch block shows the
 // generic form error — nothing else needs to change there.
@@ -1163,7 +964,7 @@ async function submitBookingRequest(payload) {
         guests: payload.guests,
         property: payload.property,
         estimatedTotal: payload.price && payload.price.pricePerNight > 0
-            ? formatMoney(payload.price.total, payload.price.currency)
+            ? formatMoney(payload.price.total, payload.price.currency, currentLanguage)
             : "",
         _replyto: payload.email,
         _subject: `Booking request: ${payload.property} — ${payload.checkIn} to ${payload.checkOut}`,

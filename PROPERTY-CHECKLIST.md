@@ -12,7 +12,7 @@ Referanse: full teknisk gjennomgang i [full-audit.md](.claude/full-audit.md).
 
 ## 0. Forutsetninger
 
-- [ ] Node.js installert (kreves for `node scripts/sync-seo.js` — se seksjon 8)
+- [ ] Node.js installert (kreves for `node scripts/sync-seo.js` — se seksjon 8 — og for `node --test` — se seksjon 10)
 - [ ] Python installert (valgfritt — kun for lokal forhåndsvisning via `.claude/launch.json`, `python -m http.server 5173`)
 - [ ] Egen Formspree-konto/skjema for den nye propertyen (se seksjon 6 — **kritisk**, ikke valgfritt)
 - [ ] Egen GA4-property og Microsoft Clarity-prosjekt for den nye propertyen (se seksjon 7)
@@ -117,7 +117,7 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 | `minimumStay`, `maximumStay`, `bookingHorizonMonths` | `site-data.js:144–153` | Config | `null` = ingen grense (unntatt `minimumStay`, se kjent avvik i full-audit.md §04) |
 | `maximumGuests` | `site-data.js:157` | Config | Hold denne i sync med `facts`-arrayets "guests"-verdi manuelt — ingen automatisk kobling mellom dem |
 | `blockedDates[]` | `site-data.js:164–167` | Config | Hånd-redigert liste, ingen reservasjons-lås (kjent, akseptert driftsrisiko — se full-audit.md §03) |
-| **`FORMSPREE_ENDPOINT`** | `script.js:1128` | **🔴 Kritisk — kode, ikke config** | Hardkodet Formspree-skjema-URL (`https://formspree.io/f/mbgrqqlg`) spesifikt for Property #1. **Glemmer du å bytte denne, går alle bestillingsforespørsler fra Property #2 til Property #1 sin Formspree-innboks.** Opprett et nytt Formspree-skjema for den nye propertyen og lim inn den nye URL-en her før lansering. Dette er ikke nevnt eksplisitt i full-audit.md §02 og er den mest kritiske "glem-dette-og-ingenting-funker"-fellen i hele malen. |
+| **`FORMSPREE_ENDPOINT`** | `script.js:944` | **🔴 Kritisk — kode, ikke config** | Hardkodet Formspree-skjema-URL (`https://formspree.io/f/mbgrqqlg`) spesifikt for Property #1. **Glemmer du å bytte denne, går alle bestillingsforespørsler fra Property #2 til Property #1 sin Formspree-innboks.** Opprett et nytt Formspree-skjema for den nye propertyen og lim inn den nye URL-en her før lansering. Dette er ikke nevnt eksplisitt i full-audit.md §02 og er den mest kritiske "glem-dette-og-ingenting-funker"-fellen i hele malen. |
 | `booking.numberLocales` | `site-data.js` (`booking`-blokken) | Config | `{ en: "en-US", th: "th-TH" }` — kun brukt til tallformatering (gruppe-/desimalskilletegn i prisvisning), ikke valutasymbolet (det er `currency` over). Legger den nye propertyen til et tredje språk (utenfor scope for en vanlig klone, se seksjon 9), trenger den én ny nøkkel her — ellers ingen endring nødvendig. Manglende/ugyldig verdi faller trygt tilbake til `en-US`. |
 | `integrations.airbnb` / `integrations.bookingCom` | `site-data.js:173–176` | Ubrukte placeholders | Ingen kode leser disse ennå — forberedt plass for Fase 3 (backend) |
 
@@ -186,10 +186,11 @@ Malen støtter i dag **nøyaktig to språk: `en` og `th`** — hardkodet flere s
 
 ## 10. Deployment/verification
 
-- [ ] Ingen build-steg — rene statiske filer, deploy `index.html` + `style.css` + `script.js` + `site-data.js` + `translations.js` + `assets/` + `robots.txt` + `sitemap.xml` som de er
+- [ ] Ingen build-steg — rene statiske filer, deploy `index.html` + `style.css` + `script.js` + `booking-logic.js` + `site-data.js` + `translations.js` + `assets/` + `robots.txt` + `sitemap.xml` som de er. `booking-logic.js` er **runtime**, ikke bare test-infrastruktur — `index.html` laster den som en vanlig `<script>` før `script.js`, og siden er ødelagt uten den. `tests/` (og `node --test` selv) er derimot dev-only og trenger **ikke** deployes.
 - [ ] Lokal forhåndsvisning: `.claude/launch.json` kjører `python -m http.server 5173` — ingen property-spesifikk konfigurasjon her
 - [ ] Kjør `node scripts/sync-seo.js` **etter** siste endring i `site-data.js`, **før** deploy (se seksjon 8)
-- [ ] Manuell smoke-test i nettleser (ingen automatisert testsuite finnes ennå — se full-audit.md Fase 2, punkt 3):
+- [ ] Kjør `node --test` **før** deploy — 51 tester dekker dato-/blokkering-/prislogikken (`booking-logic.js`) og feiler raskt (< 1s) hvis en fremtidig endring bryter noe her. Ingen `npm install` nødvendig (Node sin innebygde testrunner).
+- [ ] Manuell smoke-test i nettleser (`node --test` dekker ikke DOM/UI — se over):
   - [ ] Alle 8 seksjoner viser riktig innhold på begge språk
   - [ ] Galleri + lightbox fungerer, riktig bildeantall
   - [ ] Kart viser riktig adresse
@@ -205,7 +206,7 @@ Malen støtter i dag **nøyaktig to språk: `en` og `th`** — hardkodet flere s
 
 Samlet oversikt — alt herfra kan **ikke** løses ved kun å redigere `site-data.js`:
 
-1. **`FORMSPREE_ENDPOINT`** (`script.js:1128`) — 🔴 mest kritisk, se seksjon 6
+1. **`FORMSPREE_ENDPOINT`** (`script.js:944`) — 🔴 mest kritisk, se seksjon 6
 2. **About-seksjonens bilde** (`index.html:147–150`) — helt utenfor config, se seksjon 3
 3. **Hero preload-lenke** (`index.html:34`) — må matches manuelt mot `config.heroImage`, se seksjon 3
 4. **Hero-bildets `alt`-tekst** (`index.html:77`) — ikke koblet til noen `data-property-*`-attributt
