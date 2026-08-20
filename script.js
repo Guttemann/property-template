@@ -21,6 +21,30 @@ function safeStorageSet(key, value) {
     }
 }
 
+// site-data.js is hand-edited per property, so a missing field, wrong
+// type, or a broken structure needs to be loud, not stumbled into as an
+// empty gallery or a booking widget that quietly stops responding. This is
+// the one place a config problem becomes both a specific console.error for
+// the developer and one visible on-page banner, so it's never mistaken for
+// guest-facing content or missed entirely. Errors are appended as separate
+// lines to a single banner rather than stacking multiple banners.
+let configErrorBanner = null;
+
+function reportConfigError(message, error) {
+    console.error(`[site-data.js] ${message}`, error || "");
+
+    if (!configErrorBanner) {
+        configErrorBanner = document.createElement("div");
+        configErrorBanner.setAttribute("role", "alert");
+        configErrorBanner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#b91c1c;color:#fff;font:14px/1.4 system-ui,sans-serif;padding:10px 16px;text-align:center;";
+        document.body.appendChild(configErrorBanner);
+    }
+
+    const line = document.createElement("div");
+    line.textContent = message;
+    configErrorBanner.appendChild(line);
+}
+
 let currentLanguage = safeStorageGet("property-language") || "en";
 let lightboxIndex = 0;
 let lightboxTriggerElement = null;
@@ -74,6 +98,11 @@ function observeRevealElements() {
 
 function renderFacts() {
     const config = window.propertyConfig;
+    if (!Array.isArray(config.facts)) {
+        reportConfigError('config.facts is missing or not an array — check site-data.js. The "Property Facts" section will stay empty.');
+        factsGrid.innerHTML = "";
+        return;
+    }
     factsGrid.innerHTML = config.facts.map(item => `
         <article class="fact-card reveal">
             <span class="fact-icon">${iconSvg(item.icon)}</span>
@@ -87,6 +116,11 @@ function renderFacts() {
 
 function renderGallery() {
     const config = window.propertyConfig;
+    if (!Array.isArray(config.gallery)) {
+        reportConfigError("config.gallery is missing or not an array — check site-data.js. The gallery and lightbox will be empty.");
+        galleryGrid.innerHTML = "";
+        return;
+    }
     galleryGrid.innerHTML = config.gallery.map((image, index) => `
         <button class="gallery-item ${image.span || ""} reveal-image" type="button"
             data-gallery-index="${index}" aria-label="${getText(image.alt)}">
@@ -105,6 +139,11 @@ function renderGallery() {
 
 function renderAmenities() {
     const config = window.propertyConfig;
+    if (!Array.isArray(config.amenities)) {
+        reportConfigError("config.amenities is missing or not an array — check site-data.js. The amenities section will stay empty.");
+        amenitiesGrid.innerHTML = "";
+        return;
+    }
     amenitiesGrid.innerHTML = config.amenities.map(item => `
         <article class="amenity-card reveal">
             <span class="amenity-icon">${iconSvg(item.icon)}</span>
@@ -117,6 +156,11 @@ function renderAmenities() {
 
 function renderLocationHighlights() {
     const config = window.propertyConfig;
+    if (!Array.isArray(config.locationHighlights)) {
+        reportConfigError("config.locationHighlights is missing or not an array — check site-data.js. The location highlights section will stay empty.");
+        locationHighlightsGrid.innerHTML = "";
+        return;
+    }
     locationHighlightsGrid.innerHTML = config.locationHighlights.map(item => `
         <div class="highlight-item reveal">
             <div class="highlight-value">${item.value}</div>
@@ -156,33 +200,44 @@ function renderStaticContent() {
     const config = window.propertyConfig;
     if (!config) return;
 
-    applySeoMeta();
+    // Per-field guards above (renderFacts/renderGallery/renderAmenities/
+    // renderLocationHighlights) handle the known "missing/malformed array"
+    // failure mode and isolate it to just that section. This try/catch is
+    // the fallback net for anything else unexpected here, so a config
+    // problem never throws past renderStaticContent — that would stop
+    // setLanguage() mid-call and, since it runs before initBooking() at the
+    // bottom of this file, take the booking widget down with it too.
+    try {
+        applySeoMeta();
 
-    document.querySelectorAll("[data-property-name]").forEach(el => el.textContent = getText(config.name));
-    document.querySelectorAll("[data-property-location]").forEach(el => el.textContent = getText(config.location));
-    document.querySelectorAll("[data-property-hero-title]").forEach(el => el.textContent = getText(config.heroTitle));
-    document.querySelectorAll("[data-property-hero-description]").forEach(el => el.textContent = getText(config.heroDescription));
-    document.querySelectorAll("[data-property-hero-details]").forEach(el => el.textContent = getText(config.heroDetails));
-    document.querySelectorAll("[data-property-about-title]").forEach(el => el.textContent = getText(config.aboutTitle));
-    document.querySelectorAll("[data-property-about-body]").forEach(el => el.textContent = getText(config.aboutBody));
-    document.querySelectorAll("[data-property-about-body-2]").forEach(el => el.textContent = getText(config.aboutBody2));
-    document.querySelectorAll("[data-property-location-body]").forEach(el => el.textContent = getText(config.locationBody));
-    document.querySelectorAll("[data-property-location-body-2]").forEach(el => el.textContent = getText(config.locationBody2));
-    document.querySelectorAll("[data-property-map-address]").forEach(el => el.textContent = getText(config.mapAddress));
-    document.querySelectorAll("[data-property-email]").forEach(el => { if (config.email) { el.textContent = config.email; el.href = `mailto:${config.email}`; } else { el.textContent = "Contact via Facebook"; el.href = config.contactUrl; } });
-    document.querySelectorAll("[data-property-phone]").forEach(el => { el.textContent = config.phone; el.href = `tel:${config.phone.replace(/\s+/g, "")}`; });
-    document.querySelectorAll("[data-property-footer-copy]").forEach(el => el.textContent = getText(config.footerCopy));
-    document.querySelectorAll("[data-property-hero-image]").forEach(el => el.src = config.heroImage);
-    document.querySelectorAll("[data-property-map-link]").forEach(el => el.href = config.mapUrl);
-    document.querySelectorAll("[data-property-contact-link]").forEach(el => el.href = config.contactUrl);
-    document.querySelectorAll("[data-property-photos-link]").forEach(el => el.href = config.photosUrl);
+        document.querySelectorAll("[data-property-name]").forEach(el => el.textContent = getText(config.name));
+        document.querySelectorAll("[data-property-location]").forEach(el => el.textContent = getText(config.location));
+        document.querySelectorAll("[data-property-hero-title]").forEach(el => el.textContent = getText(config.heroTitle));
+        document.querySelectorAll("[data-property-hero-description]").forEach(el => el.textContent = getText(config.heroDescription));
+        document.querySelectorAll("[data-property-hero-details]").forEach(el => el.textContent = getText(config.heroDetails));
+        document.querySelectorAll("[data-property-about-title]").forEach(el => el.textContent = getText(config.aboutTitle));
+        document.querySelectorAll("[data-property-about-body]").forEach(el => el.textContent = getText(config.aboutBody));
+        document.querySelectorAll("[data-property-about-body-2]").forEach(el => el.textContent = getText(config.aboutBody2));
+        document.querySelectorAll("[data-property-location-body]").forEach(el => el.textContent = getText(config.locationBody));
+        document.querySelectorAll("[data-property-location-body-2]").forEach(el => el.textContent = getText(config.locationBody2));
+        document.querySelectorAll("[data-property-map-address]").forEach(el => el.textContent = getText(config.mapAddress));
+        document.querySelectorAll("[data-property-email]").forEach(el => { if (config.email) { el.textContent = config.email; el.href = `mailto:${config.email}`; } else { el.textContent = "Contact via Facebook"; el.href = config.contactUrl; } });
+        document.querySelectorAll("[data-property-phone]").forEach(el => { el.textContent = config.phone; el.href = `tel:${config.phone.replace(/\s+/g, "")}`; });
+        document.querySelectorAll("[data-property-footer-copy]").forEach(el => el.textContent = getText(config.footerCopy));
+        document.querySelectorAll("[data-property-hero-image]").forEach(el => el.src = config.heroImage);
+        document.querySelectorAll("[data-property-map-link]").forEach(el => el.href = config.mapUrl);
+        document.querySelectorAll("[data-property-contact-link]").forEach(el => el.href = config.contactUrl);
+        document.querySelectorAll("[data-property-photos-link]").forEach(el => el.href = config.photosUrl);
 
-    renderFacts();
-    renderGallery();
-    renderAmenities();
-    renderLocationHighlights();
-    renderMapEmbed();
-    observeRevealElements();
+        renderFacts();
+        renderGallery();
+        renderAmenities();
+        renderLocationHighlights();
+        renderMapEmbed();
+        observeRevealElements();
+    } catch (error) {
+        reportConfigError("Unexpected error while rendering page content from site-data.js — check the config for missing or malformed fields.", error);
+    }
 }
 
 function setLanguage(language) {
@@ -1275,6 +1330,21 @@ function refreshBookingTexts() {
 }
 
 // INIT
+if (!window.propertyConfig) {
+    reportConfigError("window.propertyConfig is missing — site-data.js may have failed to load or has a syntax error. Showing static fallback content only; booking is disabled.");
+}
+
 initAnalytics();
-setLanguage(currentLanguage);
-initBooking();
+
+try {
+    setLanguage(currentLanguage);
+} catch (error) {
+    reportConfigError("Failed to initialize page language/content — check site-data.js and translations.js.", error);
+}
+
+// initBooking() is async: a synchronous throw before its first `await`
+// becomes a rejected promise, not a catchable exception at the call site,
+// so it needs its own .catch() rather than a try/catch here.
+initBooking().catch(error => {
+    reportConfigError("Failed to initialize the booking widget — check config.booking in site-data.js.", error);
+});

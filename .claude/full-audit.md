@@ -543,7 +543,7 @@ Ingen kode er endret som del av denne gjennomgangen. Alle linjereferanser peker 
 
 ## Implementation Status
 
-*Sist oppdatert: 2026-08-20, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i denne økten (inkl. `514b97c`). Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
+*Sist oppdatert: 2026-08-20, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i denne økten (inkl. config loading/error handling i `script.js`). Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
 
 Commits siden audit-punktet (`23921bd`), eldst først:
 
@@ -555,7 +555,8 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 - `a9b98bf` — docs: add senior code audit and implementation status
 - `514b97c` — Improve image loading performance
 - `b40e2d9` — Wire Facebook links to data-property-contact-link, sync audit status
-- *(uncommitted, denne økten)* — SEO hygiene: `robots.txt`, `sitemap.xml` generert av `scripts/sync-seo.js`
+- `ebe8899` — Add robots.txt and sitemap.xml for SEO hygiene
+- *(uncommitted, denne økten)* — Config loading/error handling i `script.js`: `reportConfigError()`, guards på content-rendering, try/catch-sikkerhetsnett, og korrekt async-feilhåndtering i init-sekvensen
 
 ### Fase 0 — Gjør produktet reelt
 
@@ -570,7 +571,24 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 2. ✅ **Kontrastforhold på `--muted`** (`4bf7ee3`) — verifisert i style.css: `--muted: #5c6b63` (var `#718078` i audit-en), akkurat verdien audit-en foreslo.
    ✅ **Lightbox fokusfelle + dialog-semantikk** (`4bf7ee3`) — verifisert: `role="dialog"`, `aria-modal="true"` og `aria-labelledby` på lightbox-elementet, Tab-fokusfelle og fokus-gjenoppretting til triggerelementet i script.js.
 3. 🟡 **Delvis** (`514b97c`) — galleri- og about-bilder har nå `loading="lazy"`, `decoding="async"` og eksplisitte `width`/`height` (fra nye `width`/`height`-felt på hvert `gallery`-objekt i `site-data.js`, brukt av `renderGallery()` i script.js). Hero-bildet har fått `<link rel="preload">` + `fetchpriority="high"` for raskere LCP. De 8 galleri-WebP-filene er også rekomprimert (~19 % mindre totalt, samme dimensjoner). Verifisert direkte i index.html, script.js og site-data.js. **Fortsatt ikke gjort:** `srcset`/`sizes` for responsive bildestørrelser — mobil laster fortsatt samme fil som desktop, kun færre bytes enn før.
-4. ❌ **Fortsatt ikke gjort** — ingen toppnivå try/catch rundt config-lasting/rendering. De try/catch-blokkene som finnes i dag er avgrenset til `initAnalytics()` og Formspree-innsendingen, ikke en generell guard rundt `window.propertyConfig`-bruk.
+4. ✅ **Config loading/error handling implementert og testet** (denne økten, `script.js`) — en liten, avgrenset løsning uten skjema/framework/nye filer:
+   - `reportConfigError(message, error)` ([script.js:24-44](../script.js)): logger et tydelig, prefikset `console.error("[site-data.js] ...")` og viser/utvider én synlig banner øverst på siden (`role="alert"`, ren inline-styling, ingen dismiss-knapp). Én banner-instans gjenbrukes — flere feil legges til som egne linjer i stedet for flere bannere.
+   - `renderFacts()`, `renderGallery()`, `renderAmenities()`, `renderLocationHighlights()` har hver fått en `Array.isArray(config.X)`-guard ([script.js:98-171](../script.js)) i samme stil som den eksisterende valideringen i `expandBlockedDates()`. Et manglende/feilformet felt rapporteres med feltnavn, den ene seksjonen lar grid stå tom, og resten av siden (inkl. de tre andre seksjonene og booking) påvirkes ikke.
+   - `renderStaticContent()` har fått et try/catch-sikkerhetsnett rundt hele kroppen (etter den eksisterende `if (!config) return`) ([script.js:200-243](../script.js)) som fanger alt de fire guard'ene ikke dekker, uten å kaste videre — det er nettopp det som tidligere kunne stoppe `setLanguage()` midt i og dermed hindre `initBooking()` i å kjøre i det hele tatt.
+   - Init-sekvensen nederst ([script.js:1333-1350](../script.js)): eksplisitt sjekk av manglende `window.propertyConfig` (én tydelig melding), `setLanguage(currentLanguage)` pakket i try/catch, og `initBooking()` byttet til `initBooking().catch(...)` siden en synkron feil før første `await` i en async-funksjon blir en unhandled promise rejection, ikke en fangbar exception ved kallstedet.
+   - `initAnalytics()` og `applySeoMeta()` er **ikke rørt** — de fungerte allerede korrekt (egen try/catch, fallback til `{}`/tomme verdier) og er bevisst latt være som de er.
+   
+   **Testet i nettleser** (lokal preview, `python -m http.server`), seks scenarioer, alle bekreftet:
+   - Normal config: alt rendres korrekt (5 facts, 8 gallery, 10 amenities, 4 location highlights, 31 kalenderdager), ingen banner, ingen konsollfeil.
+   - Manglende `window.propertyConfig` (testet med en midlertidig kopi av `index.html` uten `site-data.js`-scripttaggen, slettet etter test): banner + `console.error` vises, booking-seksjon og nav-lenke skjules som før (`display: none`), siden krasjer ikke, resten av layouten er intakt.
+   - Manglende/ugyldig content-felt (`amenities` slettet, `gallery` satt til en streng): nøyaktig to `console.error`-linjer med feltnavn, `amenitiesGrid`/`galleryGrid` tomme, mens `facts` (5) og `locationHighlights` (4) fortsatt rendres normalt.
+   - Booking-flow med gyldig config: kalendervalg → "Check Availability" → riktig tilgjengelighets-/prissammendrag (10 000 THB × 1 natt), fungerer identisk med før endringen.
+   - Samme booking-flow kjørt på nytt **med** ødelagt `amenities`/`gallery` samtidig: booking fullføres helt uendret — bekrefter at et content-feltfeil ikke stopper booking.
+   - Uventet feil injisert direkte i `config.booking` (en getter som kaster): banner + `console.error` med stack trace vises, men facts/gallery/amenities/SEO-tittel rendres fullstendig uendret — bekrefter isolasjon også den andre veien.
+   - Ugyldig `analytics` (tall i stedet for objekt) og `seo: null`: ingen krasj, ingen banner (fordi eksisterende fallback-logikk i `initAnalytics()`/`applySeoMeta()` allerede håndterer dette uten feil), `document.title`/meta description falt korrekt tilbake til `config.name`/`heroDescription`, booking upåvirket.
+   - Normal side: verifisert på nytt i en helt fersk fane etter alle testene — fortsatt ingen konsollfeil.
+   
+   §07 sitt 🟠-funn ("Ingen toppnivå try/catch rundt config-bruk") og Fase 1 punkt 4 er dermed lukket.
 5. 🟡 **Delvis** — Open Graph og Twitter Card-metadata er på plass (generert av `scripts/sync-seo.js`, verifisert i index.html). **Nytt denne økten:** `robots.txt` (statisk, `Allow: /`, med kommentar om å legge til `Sitemap:`-linje når domene er satt) og `sitemap.xml` (generert av `scripts/sync-seo.js`, valid tomt `<urlset>` så lenge `seo.siteUrl` er tom — fylles automatisk med `<url><loc>` for forsiden neste gang scriptet kjøres etter at `siteUrl` er satt). Begge verifisert: servert korrekt fra lokal preview (`/robots.txt`, `/sitemap.xml`), XML validert som velformet (Chrome sin innebygde XML-parser), og manuelt testet at `buildSitemapXml()` produserer riktig `<loc>` når `siteUrl` er satt. Canonical-tag og JSON-LD strukturert data finnes fortsatt ikke — canonical er allerede kodeferdig i `sync-seo.js` og aktiveres automatisk når `siteUrl` settes; JSON-LD er bevisst utsatt til domenet er reelt (se vurdering under).
 
 ### Fase 2 — Forbered faktisk gjenbruk
@@ -601,13 +619,12 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
 
 ### Kort oppsummert
 
-**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, og SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`, denne økten).
+**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`), og nå config loading/error handling (`reportConfigError()` + array-guards + try/catch-sikkerhetsnett + async-riktig init-sekvens) — dermed er hele Fase 1 fullført bortsett fra `srcset`/`sizes` og touch-mål-punktet under.
 
 **Bevisst utsatt** (ikke gjenstående arbeid, men en vurdering gjort denne økten): canonical-tag og JSON-LD strukturert data. Canonical er allerede kodeferdig i `sync-seo.js` og trenger ingen ny kode — kun at `seo.siteUrl` fylles inn med et ekte domene. JSON-LD ble vurdert og bevisst holdt utenfor: et `LodgingBusiness`-skjema med feil/manglende felt (pris, adresse, bilder som endrer seg per property) er nettopp den typen "bygd fordi det var mulig" audit-en advarer mot i §19, og gir ingen reell verdi før siden faktisk er indekserbar på et ekte domene. Begge bør tas i samme omgang som §12 sitt gjenværende 🟠-funn (separate URL-er/hreflang for thai) — når domenet er satt.
 
 **Neste naturlige steg** (i prioritert rekkefølge, følger roadmapens egen logikk):
 1. Fase 1, punkt 3 (rest) — vurder `srcset`/`sizes` for responsive bildestørrelser (lazy-loading/dimensjoner er allerede løst av `514b97c`).
-2. Fase 1, punkt 4 — try/catch rundt config-lasting med synlig feilmelding (siste gjenstående punkt i Fase 1 utover det som nå er dekket).
-3. Fase 1, punkt 10-touch-mål — `guest-btn`/`cal-nav` opp mot ~44px, siden dette fortsatt er åpent og henger tematisk sammen med accessibility-arbeidet som allerede pågår.
-4. Fase 2 i sin helhet — ingen av de fem punktene er startet ennå, og flere av dem (unit-tester, `||`/`??`, dødt `locationBody2`-felt) er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19.
-5. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
+2. Fase 1, punkt 10-touch-mål — `guest-btn`/`cal-nav` opp mot ~44px, siden dette fortsatt er åpent og henger tematisk sammen med accessibility-arbeidet som allerede pågår. Med config-loading-arbeidet ferdig er dette nå det siste gjenstående punktet i Fase 1.
+3. Fase 2 i sin helhet — ingen av de fem punktene er startet ennå, og flere av dem (unit-tester, `||`/`??`, dødt `locationBody2`-felt) er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19.
+4. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
