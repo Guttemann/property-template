@@ -557,8 +557,9 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 - `b40e2d9` — Wire Facebook links to data-property-contact-link, sync audit status
 - `ebe8899` — Add robots.txt and sitemap.xml for SEO hygiene
 - `934b6c5` — Add config loading error handling for site-data.js
-- *(uncommitted, denne økten)* — Touch-mål på `.guest-btn`/`.cal-nav` utvidet til 44×44px reell treffflate, kodeendring gjort og testet, ikke committet ennå (se Fase 1-status under)
+- `141e3da` — Expand guest-btn/cal-nav touch targets to 44x44px
 - *(uncommitted, tidligere denne økten)* — Ingen kodeendring: kost/gevinst-analyse av `srcset`/`sizes` (Fase 1, gjenstående del av punkt 3), konklusjon dokumentert under, punktet bevisst utsatt
+- *(uncommitted, denne økten)* — **Fase 2, punkt 1: [PROPERTY-CHECKLIST.md](../PROPERTY-CHECKLIST.md) opprettet.** Ren analyse-/dokumentasjonsbatch, ingen kodeendring. Hele repoet ble kartlagt på nytt felt for felt (site-data.js, index.html, script.js, scripts/sync-seo.js, style.css, translations.js, assets/images, robots.txt, sitemap.xml) og sammenlignet direkte mot koden slik den står i dag — ikke mot audit-ens opprinnelige linjereferanser. Se "Fase 2" og "Nye funn denne økten" under.
 
 ### Fase 0 — Gjør produktet reelt
 
@@ -597,11 +598,21 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 
 ### Fase 2 — Forbered faktisk gjenbruk
 
-1. ❌ Ingen dokumentert "ny property"-sjekkliste funnet i repoet.
+1. ✅ **"Ny property"-sjekkliste skrevet** — [PROPERTY-CHECKLIST.md](../PROPERTY-CHECKLIST.md), denne økten. Dekker alle 11 punkter bedt om (identity/branding, tekst, bilder, lokasjon/kart, kontakt/social, booking/pris, analytics, SEO, språk, deployment/verifisering, samt en samlet liste over alt som fortsatt krever manuell kodeendring). Hvert punkt er verifisert direkte mot koden slik den står i dag, med fil:linje-referanser — ikke antatt. Ingen kode er endret, ingen JSON Schema/testsystem/refaktorering er påbegynt (bevisst, se oppdragsbeskrivelse for denne batchen).
 2. ❌ `NUMBER_LOCALES` er fortsatt en hardkodet konstant i script.js, ikke flyttet til config.
 3. ❌ Ingen testfiler, testrammeverk eller `package.json` funnet i repoet — ingen unit-tester er lagt til for dato-/prislogikken.
 4. ❌ `getText()` bruker fortsatt `||`, `t()` bruker fortsatt `??` — inkonsekvensen består. `locationBody2` finnes fortsatt i `site-data.js` uten noe tilhørende `[data-property-location-body-2]`-element i index.html — feltet er fortsatt dødt.
 5. ❌ Ingen JSON Schema for `propertyConfig` funnet.
+
+### Nye funn denne økten (fra PROPERTY-CHECKLIST.md-arbeidet, ikke i original-audit-en)
+
+Disse dukket opp under felt-for-felt-kartleggingen for sjekklisten og var ikke eksplisitt navngitt i §02 av original-audit-en. Ingen av dem er fikset i denne økten — ren dokumentasjon, se [PROPERTY-CHECKLIST.md](../PROPERTY-CHECKLIST.md) seksjon 6, 3, 1 og 5 for detaljer.
+
+- **🔴 `FORMSPREE_ENDPOINT` er hardkodet i `script.js:1128`, ikke i config.** Dette er det mest kritiske funnet: klones malen til property #2 uten at denne konstanten byttes, går alle bestillingsforespørsler fra den nye propertyen til property #1 sin Formspree-innboks — helt usynlig med mindre noen tester end-to-end. Bør trolig prioriteres sammen med analytics-ID-ene i en fremtidig "flytt til config"-runde, ettersom mønsteret (`analytics.ga4MeasurementId` osv.) allerede finnes å kopiere fra.
+- **⚠️ About-seksjonens bilde (`index.html:147–150`) er 100 % utenfor config-systemet** — verken `src` eller `alt` er koblet til noe `data-property-*`-attributt eller config-felt, i motsetning til alle andre bilder på siden.
+- **⚠️ `google-site-verification`-taggen (`index.html:7`) er domene-spesifikk og fullstendig hardkodet**, utenfor både `seo`-blokken i site-data.js og `scripts/sync-seo.js`. Krever en ny token fra Google Search Console per nytt domene.
+- **⚠️ `photosUrl` (`site-data.js:108`) er et dødt config-felt**, samme situasjon som det allerede kjente `locationBody2` — `script.js:230` leser `[data-property-photos-link]`, men ingen HTML-element har det attributtet.
+- **⚠️ Hero preload-lenken (`index.html:34`) synkroniseres ikke automatisk med `config.heroImage`** — må oppdateres manuelt i HTML hvis hero-bildets filnavn endres.
 
 ### Fase 3 — Backend
 
@@ -633,7 +644,7 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
 
 ### Kort oppsummert
 
-**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`), config loading/error handling (`reportConfigError()` + array-guards + try/catch-sikkerhetsnett + async-riktig init-sekvens), og nå §10 sitt touch-mål-funn (`guest-btn`/`cal-nav` opp til 44×44px reell treffflate via usynlig hitbox, se detaljer over) — dermed er hele Fase 1 fullført bortsett fra `srcset`/`sizes`, som er bevisst utsatt (se under), ikke gjenstående.
+**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`), config loading/error handling (`reportConfigError()` + array-guards + try/catch-sikkerhetsnett + async-riktig init-sekvens), §10 sitt touch-mål-funn (`guest-btn`/`cal-nav` opp til 44×44px reell treffflate via usynlig hitbox, `141e3da`) — dermed er hele Fase 1 fullført bortsett fra `srcset`/`sizes`, som er bevisst utsatt (se under), ikke gjenstående. **Fase 2, punkt 1** ([PROPERTY-CHECKLIST.md](../PROPERTY-CHECKLIST.md)) er også ferdig — se "Nye funn denne økten" over for det som dukket opp underveis.
 
 **Bevisst utsatt** (ikke gjenstående arbeid, men vurderinger gjort med fullt kost/gevinst-grunnlag):
 
@@ -652,6 +663,6 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
   Ikke en glemt revisjon — en bevisst prioritering: kost (evigvarende manuell multiplikator per bilde per property) vurdert høyere enn gevinst (moderat, mobil-only, ikke-LCP, allerede delvis dempet av lazy loading) med kun én property i drift.
 
 **Neste naturlige steg** (i prioritert rekkefølge, følger roadmapens egen logikk):
-1. Fase 2 i sin helhet — ingen av de fem punktene er startet ennå, og flere av dem (unit-tester, `||`/`??`, dødt `locationBody2`-felt) er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19. Punkt 1 (dokumentert "ny property"-sjekkliste) bør skrives med `srcset`/`sizes`-forutsetningen fra over i bakhodet, selv om selve srcset-implementasjonen ikke gjøres nå. Med touch-mål-funnet fra §10 nå lukket er Fase 1 ferdig i sin helhet (bortsett fra det bevisst utsatte `srcset`/`sizes`-punktet), så Fase 2 er det naturlige neste steget.
+1. Resten av Fase 2 (punkt 2–5) — punkt 1 (sjekkliste) er nå ferdig. De fire gjenstående (`NUMBER_LOCALES` til config, unit-tester, `||`/`??`-inkonsekvens + dødt `locationBody2`-felt, JSON Schema) er fortsatt ikke startet, og flere av dem er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19. Sjekklist-arbeidet avdekket også at `FORMSPREE_ENDPOINT` (script.js:1128) bør vurderes flyttet til config i samme runde som `NUMBER_LOCALES` — se "Nye funn denne økten" over.
 2. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
 3. Når property #2 er reell, eller et enkelt lokalt resize-script er verdt å innføre: gjenåpne `srcset`/`sizes`-vurderingen over — grunnlaget (mål, breakpoints, filstørrelser) er allerede dokumentert her og trenger ikke gjøres på nytt.
