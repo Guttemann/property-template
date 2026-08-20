@@ -33,14 +33,14 @@ window.propertyConfig = {
         { key: "location", value: "400m", label: { en: "To Cha-Am Beach", th: "ถึงหาดชะอำ" }, icon: "pin" }
     ],
     gallery: [
-        { src: "assets/images/hero.webp", alt: { en: "Celine Pool Villa exterior", th: "ด้านนอกของ Celine Pool Villa" }, span: "is-large" },
-        { src: "assets/images/villa-main.webp", alt: { en: "Main villa exterior", th: "บริเวณด้านหน้าวิลล่า" }, span: "is-medium" },
-        { src: "assets/images/pool.webp", alt: { en: "Private swimming pool", th: "สระว่ายน้ำส่วนตัว" }, span: "is-tall" },
-        { src: "assets/images/living.webp", alt: { en: "Villa living area", th: "พื้นที่นั่งเล่นภายในวิลล่า" }, span: "is-medium" },
-        { src: "assets/images/bedroom.webp", alt: { en: "Villa bedroom", th: "ห้องนอนของวิลล่า" }, span: "is-medium" },
-        { src: "assets/images/garden.webp", alt: { en: "Outdoor garden area", th: "พื้นที่สวนกลางแจ้ง" }, span: "is-medium" },
-        { src: "assets/images/location.webp", alt: { en: "Cha-Am surroundings", th: "บริเวณโดยรอบชะอำ" }, span: "is-medium" },
-        { src: "assets/images/sunset.webp", alt: { en: "Sunset in Cha-Am", th: "พระอาทิตย์ตกในชะอำ" }, span: "is-medium" }
+        { src: "assets/images/hero.webp", alt: { en: "Celine Pool Villa exterior", th: "ด้านนอกของ Celine Pool Villa" }, span: "is-large", width: 1080, height: 609 },
+        { src: "assets/images/villa-main.webp", alt: { en: "Main villa exterior", th: "บริเวณด้านหน้าวิลล่า" }, span: "is-medium", width: 1360, height: 626 },
+        { src: "assets/images/pool.webp", alt: { en: "Private swimming pool", th: "สระว่ายน้ำส่วนตัว" }, span: "is-tall", width: 1360, height: 1020 },
+        { src: "assets/images/living.webp", alt: { en: "Villa living area", th: "พื้นที่นั่งเล่นภายในวิลล่า" }, span: "is-medium", width: 1360, height: 1020 },
+        { src: "assets/images/bedroom.webp", alt: { en: "Villa bedroom", th: "ห้องนอนของวิลล่า" }, span: "is-medium", width: 1357, height: 1020 },
+        { src: "assets/images/garden.webp", alt: { en: "Outdoor garden area", th: "พื้นที่สวนกลางแจ้ง" }, span: "is-medium", width: 1360, height: 1020 },
+        { src: "assets/images/location.webp", alt: { en: "Cha-Am surroundings", th: "บริเวณโดยรอบชะอำ" }, span: "is-medium", width: 765, height: 1020 },
+        { src: "assets/images/sunset.webp", alt: { en: "Sunset in Cha-Am", th: "พระอาทิตย์ตกในชะอำ" }, span: "is-medium", width: 1360, height: 1020 }
     ],
     amenities: [
         { key: "privatePool", icon: "pool", label: { en: "Private Pool", th: "สระว่ายน้ำส่วนตัว" } },

@@ -90,7 +90,8 @@ function renderGallery() {
     galleryGrid.innerHTML = config.gallery.map((image, index) => `
         <button class="gallery-item ${image.span || ""} reveal-image" type="button"
             data-gallery-index="${index}" aria-label="${getText(image.alt)}">
-            <img src="${image.src}" alt="${getText(image.alt)}">
+            <img src="${image.src}" alt="${getText(image.alt)}" width="${image.width}" height="${image.height}"
+                loading="lazy" decoding="async">
         </button>
     `).join("");
 

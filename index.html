@@ -31,6 +31,8 @@
     <link rel="icon" type="image/webp" href="assets/images/celine-pool-villa-favicon.webp">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
+    <link rel="preload" as="image" href="assets/images/hero.webp" fetchpriority="high">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
@@ -73,7 +75,7 @@
 
     <header class="hero" id="overview">
         <img src="assets/images/hero.webp" alt="Celine Pool Villa Cha-Am exterior" class="hero-image"
-            data-property-hero-image>
+            width="1080" height="609" fetchpriority="high" decoding="async" data-property-hero-image>
 
         <div class="hero-overlay"></div>
 
@@ -143,7 +145,8 @@
                 </div>
 
                 <div class="about-image reveal-image">
-                    <img src="assets/images/villa-main.webp" alt="Villa exterior">
+                    <img src="assets/images/villa-main.webp" alt="Villa exterior" width="1360" height="626"
+                        loading="lazy" decoding="async">
                 </div>
             </div>
         </section>
