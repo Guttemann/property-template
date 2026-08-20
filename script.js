@@ -224,7 +224,14 @@ function renderStaticContent() {
         document.querySelectorAll("[data-property-email]").forEach(el => { if (config.email) { el.textContent = config.email; el.href = `mailto:${config.email}`; } else { el.textContent = "Contact via Facebook"; el.href = config.contactUrl; } });
         document.querySelectorAll("[data-property-phone]").forEach(el => { el.textContent = config.phone; el.href = `tel:${config.phone.replace(/\s+/g, "")}`; });
         document.querySelectorAll("[data-property-footer-copy]").forEach(el => el.textContent = getText(config.footerCopy));
-        document.querySelectorAll("[data-property-hero-image]").forEach(el => el.src = config.heroImage);
+        document.querySelectorAll("[data-property-hero-image]").forEach(el => {
+            el.src = config.heroImage;
+            if (config.heroImageAlt) el.alt = getText(config.heroImageAlt);
+        });
+        document.querySelectorAll("[data-property-about-image]").forEach(el => {
+            if (config.aboutImage?.src) el.src = config.aboutImage.src;
+            if (config.aboutImage?.alt) el.alt = getText(config.aboutImage.alt);
+        });
         document.querySelectorAll("[data-property-map-link]").forEach(el => el.href = config.mapUrl);
         document.querySelectorAll("[data-property-contact-link]").forEach(el => el.href = config.contactUrl);
         document.querySelectorAll("[data-property-photos-link]").forEach(el => el.href = config.photosUrl);
@@ -938,11 +945,11 @@ function renderRequestSummary() {
 // --- Form submission -------------------------------------------------
 // isValidEmail() now lives in booking-logic.js — see tests/price.test.js
 // (unchanged, still a plain global here).
-// v1 integration: submits the booking request to Formspree as JSON.
-// Throws on failure so handleBookingRequestSubmit's catch block shows the
-// generic form error — nothing else needs to change there.
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/mbgrqqlg";
-
+// v1 integration: submits the booking request to Formspree as JSON, using
+// the endpoint configured per property in site-data.js
+// (booking.formspreeEndpoint). Throws on failure so
+// handleBookingRequestSubmit's catch block shows the generic form error —
+// nothing else needs to change there.
 async function submitBookingRequest(payload) {
     // Honeypot tripped — a bot filled in a field real guests never see.
     // Pretend success without sending anything, so it learns nothing.
@@ -950,8 +957,13 @@ async function submitBookingRequest(payload) {
         return Promise.resolve();
     }
 
-    const contactEmail = (window.propertyConfig && window.propertyConfig.booking &&
-        window.propertyConfig.booking.contact && window.propertyConfig.booking.contact.email) || "";
+    const bookingConfig = (window.propertyConfig && window.propertyConfig.booking) || {};
+    const formspreeEndpoint = bookingConfig.formspreeEndpoint || "";
+    if (!formspreeEndpoint) {
+        throw new Error("Booking requests are not configured yet — set booking.formspreeEndpoint in site-data.js.");
+    }
+
+    const contactEmail = (bookingConfig.contact && bookingConfig.contact.email) || "";
 
     const body = {
         name: payload.name,
@@ -979,7 +991,7 @@ async function submitBookingRequest(payload) {
 
     let response;
     try {
-        response = await fetch(FORMSPREE_ENDPOINT, {
+        response = await fetch(formspreeEndpoint, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

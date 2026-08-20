@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 // Bakes propertyConfig.seo (from site-data.js) into the <!-- SEO:START -->
 // ... <!-- SEO:END --> block in index.html as static <title>, meta
-// description, canonical, Open Graph and Twitter Card tags. Also (re)writes
-// sitemap.xml at the repo root from the same seo.siteUrl.
+// description, canonical, Open Graph, Twitter Card and Google Search
+// Console verification tags. Also (re)writes sitemap.xml at the repo root
+// from the same seo.siteUrl.
 //
 // Why this exists: link-preview bots (Facebook, LINE, WhatsApp, X,
-// LinkedIn, ...) fetch raw HTML and don't execute JavaScript, so SEO tags
-// that matter for social sharing can't be set by script.js at runtime the
-// way the rest of the page's property-specific content is. This script is
-// the one place that writes those tags into index.html, so reusing the
-// template for a new property still only means editing site-data.js.
+// LinkedIn, ...) and Google's site-verification check fetch raw HTML and
+// don't execute JavaScript, so SEO tags that matter for social sharing and
+// domain verification can't be set by script.js at runtime the way the
+// rest of the page's property-specific content is. This script is the one
+// place that writes those tags into index.html, so reusing the template
+// for a new property still only means editing site-data.js.
 //
 // Usage: node scripts/sync-seo.js
 // Run after editing the `seo` block in site-data.js, before deploying.
@@ -74,6 +76,10 @@ function buildSeoBlock(config) {
     const twitterHandle = seo.twitterHandle || "";
 
     const lines = [];
+    if (seo.googleSiteVerification) {
+        lines.push(`<meta name="google-site-verification" content="${escapeHtml(seo.googleSiteVerification)}">`);
+        lines.push("");
+    }
     lines.push(`<title>${escapeHtml(title)}</title>`);
     lines.push("");
     lines.push(`<meta name="description" content="${escapeHtml(description)}">`);

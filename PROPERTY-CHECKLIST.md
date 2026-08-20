@@ -29,7 +29,7 @@ Referanse: full teknisk gjennomgang i [full-audit.md](.claude/full-audit.md).
 | Favicon (.ico) | `favicon.ico` (repo-rot) | Binærfil | Bytt fil, behold filnavnet `favicon.ico` — referert direkte i `index.html:30` |
 | Apple touch icon | `apple-touch-icon.png` (repo-rot) | Binærfil | Bytt fil, behold filnavnet — referert i `index.html:32` |
 | WebP-favicon | `assets/images/celine-pool-villa-favicon.webp` | **⚠️ Binærfil + kode** | Filnavnet har propertyens navn bakt inn. Du må enten (a) beholde nøyaktig samme filnavn og bare bytte innholdet, eller (b) gi den nytt filnavn **og** oppdatere `href` i `index.html:31` manuelt. Ingen config-kobling. |
-| Google Search Console-verifisering | `index.html:7` (`<meta name="google-site-verification">`) | **⚠️ Kode, ikke config** | Denne tokenen er knyttet til ett spesifikt domene i Google Search Console. Den gamle propertyens token er ugyldig for det nye domenet — du må generere en **ny** verifiseringstag fra Search Console for det nye domenet og lime den inn her. Lett å glemme fordi den ligger begravd i `<head>`. |
+| Google Search Console-verifisering | `site-data.js` (`seo.googleSiteVerification`), bakt inn i `index.html` av `node scripts/sync-seo.js` | ✅ **Config (Fase 2.4)** | Verdien er fortsatt **domene-spesifikk** — du må uansett generere en **ny** token fra Search Console for det nye domenet, det endrer ikke seg. Det som endret seg: du redigerer den nå i `site-data.js` sammen med resten av `seo`-blokken, og kjører `node scripts/sync-seo.js` for å bake den inn — i stedet for å redigere en frittstående `<meta>`-tag direkte i `index.html`. Se seksjon 8. |
 | Tekst-logo (nav + footer) | `index.html:51`, `375` (fallback-tekst, styrt av `data-property-name`) | Config | Ingen bilde-logo finnes i malen — logoen er ren tekst hentet fra `config.name`. Trenger ikke røres i HTML. |
 
 **Test:** last siden, sjekk fanetittel/favicon i nettleseren, sjekk at fargepaletten faktisk endret seg (ikke bare at CSS-filen ble lagret).
@@ -52,7 +52,7 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 | `locationHighlights[]` | 67–72 | De fire "5 min / Beach"-boksene ved kartet |
 | `footerCopy` | 109 | Footer-copyright |
 
-**⚠️ Dødt felt — dokumentert, ikke fjernet:** `locationBody2` (`site-data.js:61–64`) blir lest av `script.js:222` (`[data-property-location-body-2]`), men **ingen element i `index.html` har dette attributtet**. Uansett hva du skriver her, vises det aldri. Enten legg til elementet i HTML (utenfor scope for denne batchen), eller la feltet stå tomt/ignorer det — det gjør ingen skade, det gjør bare ingenting.
+**⚠️ Dødt felt — bevisst beholdt (vurdert på nytt i Fase 2.4):** `locationBody2` blir lest av `script.js` (`[data-property-location-body-2]`), men **ingen element i `index.html` har dette attributtet**. Uansett hva du skriver her, vises det aldri. Feltet ble eksplisitt vurdert for sletting i Fase 2.4-cleanupen og **beholdt**, fordi det inneholder ekte, utfylt property-innhold (reise-avstander til Forest Park/togstasjon/flyplass), ikke placeholder-tekst — en cleanup-batch skal ikke destruere reelt innhold. Kandidat for enten (a) en fremtidig feature som legger til elementet i HTML, eller (b) en senere eksplisitt sletting hvis noen bestemmer at innholdet aldri skal vises.
 
 **Statiske UI-strenger** (knappetekst, navigasjonslabels, feilmeldinger, disclaimers) ligger i `translations.js` (85 nøkler × 2 språk) og er **ikke property-spesifikke** — det er generisk UI-tekst som gjelder for alle properties. Rør denne filen kun hvis selve *ordlyden* i grensesnittet skal endres for alle fremtidige properties, ikke som del av en normal property-klone.
 
@@ -66,9 +66,9 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 |---|---|---|---|
 | Hero-bilde | `site-data.js:15` (`heroImage`) | Config | Styrer `<img data-property-hero-image>` (`index.html:77`) automatisk |
 | Galleri (8 bilder) | `site-data.js:35–44` (`gallery[]`: `src`, `alt`, `span`, `width`, `height`) | Config | `renderGallery()` bruker disse feltene direkte — inkl. `width`/`height` for CLS-forebygging, så disse må stemme med de faktiske filenes pikseldimensjoner |
-| **About-seksjonens bilde** | `index.html:147–150` | **⚠️ Ikke config i det hele tatt** | `villa-main.webp` og `alt="Villa exterior"` er skrevet direkte i HTML — ingen `data-property-*`-attributt, ingen config-felt. For å bytte dette bildet må du enten (a) beholde eksakt filnavnet `villa-main.webp` og kun bytte innholdet, eller (b) redigere `index.html` manuelt (både `src` og `alt`). Dette er det eneste bildet på siden som fungerer slik — alle andre er config-drevet. |
-| Hero preload-lenke | `index.html:34` (`<link rel="preload" as="image" href="assets/images/hero.webp">`) | **⚠️ Ikke synkronisert med config** | Denne må matche `config.heroImage` manuelt. Endrer du hero-bildets filnavn i `site-data.js` uten å oppdatere denne linjen, mister du LCP-preload-gevinsten (siden fungerer fortsatt, bare litt tregere først-maling) |
-| Hero `<img>` sin `alt`-tekst | `index.html:77` (`alt="Celine Pool Villa Cha-Am exterior"`) | **⚠️ Kode, ikke config** | `data-property-hero-image` styrer kun `src`, ikke `alt`. Må redigeres manuelt i HTML. |
+| **About-seksjonens bilde** | `site-data.js` (`aboutImage.src`, `aboutImage.alt`) | ✅ **Config (Fase 2.4)** | Var tidligere skrevet direkte i HTML uten noen config-kobling. `index.html` sitt About-bilde har nå `data-property-about-image`, satt av `renderStaticContent()` i script.js — samme mønster som hero-bildet. Feltet er valgfritt: mangler `aboutImage` i config, beholdes de hardkodede fallback-verdiene i `index.html` uendret, så en ufullstendig klone feiler ikke stille. |
+| Hero preload-lenke | `index.html:34` (`<link rel="preload" as="image" href="assets/images/hero.webp">`) | **⚠️ Bevisst hardkodet — se seksjon 11** | Denne må matche `config.heroImage` manuelt. Ikke flyttet til config i Fase 2.4: nettleserens preloader leser rå HTML *før* JavaScript kjører, så en config-drevet verdi (satt av script.js) ville komme for sent til å gi noen LCP-gevinst i det hele tatt — selve poenget med preload krever at linjen står i rå HTML. Endrer du hero-bildets filnavn i `site-data.js` uten å oppdatere denne linjen, mister du kun LCP-preload-gevinsten (siden fungerer fortsatt, bare litt tregere først-maling). |
+| Hero `<img>` sin `alt`-tekst | `site-data.js` (`heroImageAlt`) | ✅ **Config (Fase 2.4)** | `data-property-hero-image` setter nå både `src` (fra `heroImage`) og `alt` (fra `heroImageAlt`). Valgfritt felt — mangler det, beholdes HTML-fallback-teksten. |
 | Faktiske bildefiler | `assets/images/*.webp` | Filer | 8 stk, 60–247 KB per fil i dag. Ingen automatisert komprimering/resizing — konverter/komprimer til WebP manuelt før du legger dem inn (se §15/§19 i full-audit.md — ingen sjekkliste for dette fantes før nå) |
 | `srcset`/`sizes` | — | Bevisst utsatt | Malen bruker ikke responsive bildevarianter i dag (se full-audit.md "Bevisst utsatt"-seksjon) — ikke noe å gjøre her, bare vær klar over at galleribilder er noe oversamplet på mobil |
 
@@ -86,7 +86,7 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 | `mapUrl` | `site-data.js:98` | Config | "Open in Google Maps"-lenken |
 | `mapEmbedUrl` | `site-data.js:99–104` | Config | Selve iframe-kartet. **Fremgangsmåte er dokumentert direkte i kommentaren i filen:** søk opp den nye adressen på Google Maps → Share → Embed a map → kopier `src="..."`-verdien, eller bytt bare `q=`-parameteren i eksisterende URL |
 | `locationBody` | `site-data.js:57–60` | Config | Se seksjon 2 |
-| `locationBody2` | `site-data.js:61–64` | **⚠️ Dødt felt** | Se seksjon 2 — skrives aldri ut noe sted |
+| `locationBody2` | `site-data.js` | **⚠️ Dødt felt — bevisst beholdt** | Se seksjon 2 — skrives aldri ut noe sted, men beholdt med vilje (ekte innhold, ikke slettet i Fase 2.4) |
 | `locationHighlights[]` | `site-data.js:67–72` | Config | De fire hurtig-info-boksene ("5 min · Beach" osv.) |
 
 **Test:** sjekk at kartet faktisk viser riktig adresse (ikke bare at det laster), og at "Open in Google Maps"-lenken peker til riktig sted.
@@ -100,7 +100,7 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 | `phone` | `site-data.js:106` | Config | Styrer `tel:`-lenken automatisk |
 | `email` | `site-data.js:105` | Config | Tom streng i dag → footer faller tilbake til "Contact via Facebook" + `contactUrl`. Sett en ekte e-post her hvis propertyen har en. |
 | `contactUrl` | `site-data.js:107` | Config | Facebook-siden (eller annen kontakt-URL). Styrer nå **alle tre** kontaktlenkene korrekt via `data-property-contact-link` (dette var et 🟠-funn i audit-en, lukket i en tidligere økt) |
-| `photosUrl` | `site-data.js:108` | **⚠️ Dødt felt — nytt funn** | Leses av `script.js:230` (`[data-property-photos-link]`), men **ingen element i `index.html` har dette attributtet**. Akkurat samme situasjon som `locationBody2` — dokumentert her, ikke fjernet. |
+| `photosUrl` | `site-data.js` (kommentert i filen som bevisst beholdt) | **⚠️ Dødt felt — bevisst beholdt** | Leses av `script.js` (`[data-property-photos-link]`), men **ingen element i `index.html` har dette attributtet**. Samme status som `locationBody2` (seksjon 2/4). Vurdert eksplisitt i Fase 2.4-cleanupen og **ikke** slettet: innholdet er ekte property-data (en Google-photosphere-lenke), ikke placeholder-tekst, og en cleanup-batch skal ikke destruere reelt innhold. Kandidat for enten (a) en fremtidig feature som faktisk kobler den til et HTML-element, eller (b) en senere eksplisitt sletting hvis noen bestemmer at den aldri skal brukes. |
 | Footer e-post-lenkens startverdi | `index.html:382–383` | **⚠️ Kode-fallback, overstyres av JS** | `href` er i dag hardkodet til Property #1 sin Facebook-URL. Dette overstyres umiddelbart av `renderStaticContent()` ved sideinnlasting (se `script.js:224`), så det er **ikke en synlig bug** — men det er en manuelt vedlikeholdt fallback-verdi kopiert fra forrige property. Verdt å sjekke/nulle ut når du kloner, i tilfelle JS feiler eller en crawler leser rå HTML før JS kjører. |
 | `booking.contact.email` | `site-data.js:182–186` | Config | **Faktisk brukt** — CC'es inn i Formspree-innsendingen (se seksjon 6) |
 | `booking.contact.phone`, `booking.contact.line` | `site-data.js:182–186` | **⚠️ Ubrukte placeholders** | Ingen kode leser disse ennå. Fyll dem gjerne ut for fremtidig bruk, men det gjør ingen forskjell i dag. |
@@ -117,11 +117,11 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 | `minimumStay`, `maximumStay`, `bookingHorizonMonths` | `site-data.js:144–153` | Config | `null` = ingen grense (unntatt `minimumStay`, se kjent avvik i full-audit.md §04) |
 | `maximumGuests` | `site-data.js:157` | Config | Hold denne i sync med `facts`-arrayets "guests"-verdi manuelt — ingen automatisk kobling mellom dem |
 | `blockedDates[]` | `site-data.js:164–167` | Config | Hånd-redigert liste, ingen reservasjons-lås (kjent, akseptert driftsrisiko — se full-audit.md §03) |
-| **`FORMSPREE_ENDPOINT`** | `script.js:944` | **🔴 Kritisk — kode, ikke config** | Hardkodet Formspree-skjema-URL (`https://formspree.io/f/mbgrqqlg`) spesifikt for Property #1. **Glemmer du å bytte denne, går alle bestillingsforespørsler fra Property #2 til Property #1 sin Formspree-innboks.** Opprett et nytt Formspree-skjema for den nye propertyen og lim inn den nye URL-en her før lansering. Dette er ikke nevnt eksplisitt i full-audit.md §02 og er den mest kritiske "glem-dette-og-ingenting-funker"-fellen i hele malen. |
+| **`booking.formspreeEndpoint`** | `site-data.js` (`booking.formspreeEndpoint`) | ✅ **Fikset i Fase 2.4 — nå config** | Var tidligere en hardkodet konstant (`FORMSPREE_ENDPOINT`) i `script.js`. Flyttet inn i `booking`-blokken i `site-data.js`, rett ved siden av resten av booking-configen — samme fil du uansett redigerer for pris/datoer. `submitBookingRequest()` har fått en fail-loud guard: er feltet tomt, kastes en tydelig feil (`"Booking requests are not configured yet — set booking.formspreeEndpoint in site-data.js."`) i stedet for å sende mot en tom/manglende URL. **Fortsatt like kritisk å faktisk sette riktig verdi per property** — flyttingen fjerner ikke det steget, bare gjør en glemt/tom verdi synlig med en gang i stedet for stille feilsendte forespørsler. Opprett et nytt Formspree-skjema for den nye propertyen og lim inn URL-en her før lansering. |
 | `booking.numberLocales` | `site-data.js` (`booking`-blokken) | Config | `{ en: "en-US", th: "th-TH" }` — kun brukt til tallformatering (gruppe-/desimalskilletegn i prisvisning), ikke valutasymbolet (det er `currency` over). Legger den nye propertyen til et tredje språk (utenfor scope for en vanlig klone, se seksjon 9), trenger den én ny nøkkel her — ellers ingen endring nødvendig. Manglende/ugyldig verdi faller trygt tilbake til `en-US`. |
 | `integrations.airbnb` / `integrations.bookingCom` | `site-data.js:173–176` | Ubrukte placeholders | Ingen kode leser disse ennå — forberedt plass for Fase 3 (backend) |
 
-**Test (obligatorisk, ikke valgfritt):** etter kloning, **send en faktisk test-bestillingsforespørsel** gjennom hele flyten (velg datoer → Check Availability → Request to Book → fyll skjema → send) og verifiser at den faktisk lander i **den nye propertyens** Formspree-innboks/e-post — ikke i den gamle. Dette er den eneste måten å fange en glemt `FORMSPREE_ENDPOINT`-oppdatering på.
+**Test (obligatorisk, ikke valgfritt):** etter kloning, **send en faktisk test-bestillingsforespørsel** gjennom hele flyten (velg datoer → Check Availability → Request to Book → fyll skjema → send) og verifiser at den faktisk lander i **den nye propertyens** Formspree-innboks/e-post — ikke i den gamle. Dette er den eneste måten å fange en glemt `booking.formspreeEndpoint`-oppdatering på (den nye fail-loud guarden fanger kun *tom* verdi, ikke en verdi som ved en feil peker til feil property).
 
 ---
 
@@ -144,12 +144,12 @@ Sett begge til `""` for å deaktivere sporing helt (nyttig før analytics er sat
 
 | Felt | Hvor | Type | Merknad |
 |---|---|---|---|
-| `seo.title`, `seo.description` | `site-data.js:88–92` | Config | Appliseres **dynamisk** av `applySeoMeta()` (`script.js:186–197`) hver gang siden lastes/språk byttes — alltid korrekt uten ekstra steg |
-| `seo.ogImage`, `seo.siteUrl`, `seo.twitterHandle` | `site-data.js:93–95` | Config | Brukes **kun** av `scripts/sync-seo.js` (se under) — påvirker ikke runtime |
-| **Statisk SEO-block i `<head>`** | `index.html:14–28` (mellom `SEO:START`/`SEO:END`) | **⚠️ Config, men krever manuelt script-kjøring** | Open Graph, Twitter Card og (når `siteUrl` er satt) canonical-tag bakes inn i rå HTML av `node scripts/sync-seo.js`. Disse leses av lenke-forhåndsvisnings-roboter (Facebook, LINE, WhatsApp) som **ikke kjører JavaScript** — derfor holder ikke den dynamiske oppdateringen alene. **Du må kjøre scriptet manuelt** hver gang `seo`-blokken i `site-data.js` endres, før deploy. |
+| `seo.title`, `seo.description` | `site-data.js` (`seo` block) | Config | Appliseres **dynamisk** av `applySeoMeta()` i script.js hver gang siden lastes/språk byttes — alltid korrekt uten ekstra steg |
+| `seo.ogImage`, `seo.siteUrl`, `seo.twitterHandle`, `seo.googleSiteVerification` | `site-data.js` (`seo` block) | Config | Brukes **kun** av `scripts/sync-seo.js` (se under) — påvirker ikke runtime. `googleSiteVerification` er nytt i Fase 2.4, flyttet hit fra en frittstående hardkodet `<meta>`-tag i `index.html`. |
+| **Statisk SEO-block i `<head>`** | `index.html` (mellom `SEO:START`/`SEO:END`) | **⚠️ Config, men krever manuelt script-kjøring** | Open Graph, Twitter Card, Google Search Console-verifisering (nytt i Fase 2.4) og (når `siteUrl` er satt) canonical-tag bakes inn i rå HTML av `node scripts/sync-seo.js`. Disse leses av roboter — lenke-forhåndsvisning (Facebook, LINE, WhatsApp) **og** Googles site-verification-sjekk — som **ikke kjører JavaScript** — derfor holder ikke den dynamiske oppdateringen alene. **Du må kjøre scriptet manuelt** hver gang `seo`-blokken i `site-data.js` endres, før deploy. |
 | `sitemap.xml` | repo-rot | Generert fil | Samme script (`syncSitemap()`) genererer denne fra `seo.siteUrl`. Forblir en tom `<urlset>` helt til `siteUrl` er satt — det er korrekt/forventet, ikke en feil. |
 | `robots.txt` | repo-rot | **⚠️ Helt statisk, IKKE rørt av scriptet** | `scripts/sync-seo.js` oppdaterer **ikke** denne filen. Den har en utkommentert linje (`# Add "Sitemap: https://yourdomain.com/sitemap.xml"...`) som må aktiveres/redigeres for hånd når det ekte domenet er kjent. |
-| Google Search Console-verifisering | `index.html:7` | **⚠️ Se seksjon 1** | Ikke del av `seo`-blokken i config eller av sync-scriptet — helt separat, helt manuell |
+| Google Search Console-verifisering (selve tokenet) | `site-data.js` (`seo.googleSiteVerification`) | ✅ **Fikset i Fase 2.4 — nå config** | Fortsatt domene-spesifikk (se seksjon 1) — du må fortsatt generere en ny token per domene, det endrer ikke seg. Det som endret seg: den redigeres nå i `site-data.js` sammen med resten av SEO-blokken, i stedet for en frittstående hardkodet `<meta>`-tag i `index.html`. |
 | Canonical-tag, JSON-LD | — | Bevisst utsatt | Canonical er kodeferdig i `sync-seo.js` og aktiveres automatisk når `siteUrl` settes. JSON-LD er bevisst ikke bygget ennå (se full-audit.md "Bevisst utsatt") — ingen action her, bare vær klar over at det mangler. |
 
 **Fremgangsmåte (i rekkefølge):**
@@ -158,7 +158,7 @@ Sett begge til `""` for å deaktivere sporing helt (nyttig før analytics er sat
 3. Kjør `node scripts/sync-seo.js` fra repo-roten.
 4. Sjekk at `index.html`s SEO-block og `sitemap.xml` faktisk ble oppdatert (scriptet logger dette i terminalen).
 5. Oppdater `robots.txt` manuelt med `Sitemap:`-linjen når domenet er satt.
-6. Bytt `google-site-verification`-taggen til en ny, domene-spesifikk token.
+6. Sett en ny, domene-spesifikk token i `seo.googleSiteVerification` i `site-data.js`, og kjør `node scripts/sync-seo.js` på nytt (steg 3) for å bake den inn.
 
 **Test:** valider `sitemap.xml` som well-formed XML, sjekk OG-tagger med en lenke-debugger (f.eks. Facebook Sharing Debugger) etter at siten er live på ekte domene.
 
@@ -204,24 +204,24 @@ Malen støtter i dag **nøyaktig to språk: `en` og `th`** — hardkodet flere s
 
 ## 11. Ting som fortsatt krever manuell kodeendring
 
-Samlet oversikt — alt herfra kan **ikke** løses ved kun å redigere `site-data.js`:
+Samlet oversikt — alt herfra kan **ikke** løses ved kun å redigere `site-data.js`.
 
-1. **`FORMSPREE_ENDPOINT`** (`script.js:944`) — 🔴 mest kritisk, se seksjon 6
-2. **About-seksjonens bilde** (`index.html:147–150`) — helt utenfor config, se seksjon 3
-3. **Hero preload-lenke** (`index.html:34`) — må matches manuelt mot `config.heroImage`, se seksjon 3
-4. **Hero-bildets `alt`-tekst** (`index.html:77`) — ikke koblet til noen `data-property-*`-attributt
-5. **`google-site-verification`-tag** (`index.html:7`) — domene-spesifikk, helt utenfor config og utenfor `sync-seo.js`
-6. **Favicon-filnavnet** `celine-pool-villa-favicon.webp` (`index.html:31`) — propertyens navn er bakt inn i filnavnet
-7. **`robots.txt`** — helt statisk, ikke generert, `Sitemap:`-linjen må legges til for hånd
-8. **Fargepalett og fonter** (`style.css:1–14`, `index.html:39–41`) — den visuelle identiteten, forventet å være kode
-9. **Antall/valg av språk** (`index.html:65–67`, `translations.js`) — se seksjon 9, kun relevant hvis språk-settet skal endres. `booking.numberLocales` er **ikke** lenger en del av dette punktet — det er config siden denne økten, se seksjon 6/9.
-10. **`node scripts/sync-seo.js`** må kjøres manuelt hver gang `seo`-blokken endres — ikke automatisk, ikke en del av deploy
+**Fikset i Fase 2.4 (config cleanup, 2026-08-20)** — disse fire sto tidligere i denne listen, er nå config: `booking.formspreeEndpoint` (var `FORMSPREE_ENDPOINT` i script.js), About-seksjonens bilde (`aboutImage.src`/`aboutImage.alt`), hero-bildets `alt`-tekst (`heroImageAlt`), og Google Search Console-tokenet (`seo.googleSiteVerification`, bakt inn av `sync-seo.js`). Se seksjon 1, 3, 6 og 8 over, og `.claude/full-audit.md` for full detalj.
+
+Gjenstående, fortsatt kode (bevisst — se begrunnelse per punkt):
+
+1. **Hero preload-lenke** (`index.html:34`) — må matches manuelt mot `config.heroImage`. Bevisst **ikke** flyttet til config: nettleserens preloader leser rå HTML *før* JavaScript kjører, så en config-drevet verdi ville komme for sent og gi null LCP-gevinst. Se seksjon 3.
+2. **Favicon-filnavnet** `celine-pool-villa-favicon.webp` (`index.html:31`) — propertyens navn er bakt inn i filnavnet. Bevisst **ikke** flyttet til config: ingen kode leser denne verdien i dag, og en config-kobling uten en byggemekanisme som faktisk skriver `href`-en ville bare flyttet problemet, ikke løst det.
+3. **`robots.txt`** — helt statisk, ikke generert, `Sitemap:`-linjen må legges til for hånd
+4. **Fargepalett og fonter** (`style.css:1–14`, `index.html:39–41`) — den visuelle identiteten, forventet å være kode
+5. **Antall/valg av språk** (`index.html:65–67`, `translations.js`) — se seksjon 9, kun relevant hvis språk-settet skal endres. `booking.numberLocales` er **ikke** en del av dette punktet — det er config, se seksjon 6/9.
+6. **`node scripts/sync-seo.js`** må kjøres manuelt hver gang `seo`-blokken endres — ikke automatisk, ikke en del av deploy
 
 **Dødte config-felt** (finnes i `site-data.js`, men ingen kode/HTML konsumerer dem — trygt å ignorere, men forvirrende hvis noen prøver å bruke dem og lurer på hvorfor ingenting skjer):
-- `locationBody2` (`site-data.js:61–64`)
-- `photosUrl` (`site-data.js:108`)
-- `booking.contact.phone`, `booking.contact.line` (`site-data.js:182–186`) — kun `booking.contact.email` er faktisk i bruk
+- `locationBody2` — **bevisst beholdt** (vurdert for sletting i Fase 2.4, men inneholder ekte property-innhold, ikke en placeholder — se seksjon 2/4)
+- `photosUrl` — **bevisst beholdt**, samme begrunnelse (se seksjon 5)
+- `booking.contact.phone`, `booking.contact.line` — annen kategori enn de to over: dette er **bevisst forberedt** config for en fremtidig integrasjon (samme status som `booking.integrations.airbnb`/`bookingCom`), ikke et glemt/dødt felt. Kun `booking.contact.email` er faktisk lest av kode i dag.
 
 ---
 
-*Sist verifisert direkte mot koden: 2026-08-20. Denne listen dokumenterer repoets faktiske oppførsel på dette tidspunktet — linjenumre kan flytte seg ved senere endringer.*
+*Sist verifisert direkte mot koden: 2026-08-20 (inkl. Fase 2.4 config cleanup). Denne listen dokumenterer repoets faktiske oppførsel på dette tidspunktet — linjenumre kan flytte seg ved senere endringer.*

@@ -13,6 +13,10 @@ window.propertyConfig = {
         th: "สระว่ายน้ำส่วนตัว · 5 ห้องนอน · พักได้สูงสุด 15 คน"
     },
     heroImage: "assets/images/hero.webp",
+    // alt text for the hero <img> (data-property-hero-image sets both src
+    // and alt from this pair of fields). Optional — if omitted, the alt
+    // text hardcoded in index.html is left untouched.
+    heroImageAlt: { en: "Celine Pool Villa Cha-Am exterior", th: "ด้านนอกของ Celine Pool Villa Cha-Am" },
     aboutTitle: {
         en: "Space, privacy and the beach close by.",
         th: "พื้นที่กว้าง ความเป็นส่วนตัว และชายหาดที่อยู่ใกล้เพียงไม่กี่ก้าว"
@@ -24,6 +28,13 @@ window.propertyConfig = {
     aboutBody2: {
         en: "The property combines a fully equipped kitchen, multiple living areas, outdoor space and family-friendly facilities with an excellent Cha-Am location around 400 metres from the beach.",
         th: "ที่พักมีครัวพร้อมใช้งาน พื้นที่นั่งเล่นหลายส่วน พื้นที่กลางแจ้ง และสิ่งอำนวยความสะดวกสำหรับครอบครัว โดยอยู่ห่างจากชายหาดชะอำประมาณ 400 เมตร"
+    },
+    // Image shown in the About section (data-property-about-image in
+    // index.html). Optional — if omitted, the src/alt hardcoded on that
+    // <img> in index.html are left untouched.
+    aboutImage: {
+        src: "assets/images/villa-main.webp",
+        alt: { en: "Main villa exterior", th: "บริเวณด้านหน้าวิลล่า" }
     },
     facts: [
         { key: "bedrooms", value: "05", label: { en: "Bedrooms", th: "ห้องนอน" }, icon: "bed" },
@@ -58,6 +69,13 @@ window.propertyConfig = {
         en: "The villa is on Chaolai Road Soi 3 in Cha-Am, with Cha-Am Beach around 400 metres away. The area puts local dining, shops and everyday essentials within easy reach.",
         th: "วิลล่าตั้งอยู่บนถนนเจ้าลาย ซอย 3 ในชะอำ ห่างจากชายหาดชะอำประมาณ 400 เมตร และเดินทางสะดวกไปยังร้านอาหาร ร้านค้า และสิ่งอำนวยความสะดวกในพื้นที่"
     },
+    // Existing property data, kept intentionally even though nothing in
+    // index.html renders it today (no element has the matching
+    // [data-property-location-body-2] attribute — see script.js). Not
+    // deleted because the content itself (real travel distances) is still
+    // valid; this is a candidate for either a future "more travel details"
+    // feature or an explicit later cleanup once someone decides which.
+    // Verified dead as of Fase 2.4 (2026-08-20) — see full-audit.md.
     locationBody2: {
         en: "Cha-am Forest Park is about 2.4 km away, Cha-am Railway Station about 3 km, and Hua Hin Airport around 18 km from the property.",
         th: "วนอุทยานชะอำอยู่ห่างประมาณ 2.4 กม. สถานีรถไฟชะอำประมาณ 3 กม. และสนามบินหัวหินประมาณ 18 กม. จากที่พัก"
@@ -74,11 +92,12 @@ window.propertyConfig = {
     // <title>/meta description are also applied at runtime by applySeoMeta()
     // in script.js (so they stay correct even if scripts/sync-seo.js hasn't
     // been run yet, and so the title follows language switches). Open Graph,
-    // Twitter Card and canonical tags are NOT set at runtime — link-preview
-    // bots (Facebook, LINE, WhatsApp, X, LinkedIn, ...) fetch raw HTML and
-    // don't execute JavaScript, so those are baked directly into index.html
-    // by `node scripts/sync-seo.js` instead. Run that script after editing
-    // this block and before deploying.
+    // Twitter Card, canonical and the Google Search Console verification tag
+    // are NOT set at runtime — link-preview bots (Facebook, LINE, WhatsApp,
+    // X, LinkedIn, ...) and Google's site-verification check fetch raw HTML
+    // and don't execute JavaScript, so those are baked directly into
+    // index.html by `node scripts/sync-seo.js` instead. Run that script
+    // after editing this block and before deploying.
     //
     // All fields are optional — leave any of them out and a sensible
     // fallback (name/location/heroDescription/heroImage above) is used
@@ -92,7 +111,14 @@ window.propertyConfig = {
         },
         ogImage: "", // fallback: heroImage above
         siteUrl: "", // e.g. "https://celinepoolvilla.com" — set before going live to enable canonical + absolute og:image/twitter:image URLs
-        twitterHandle: "" // e.g. "@handle" — leave "" to omit twitter:site
+        twitterHandle: "", // e.g. "@handle" — leave "" to omit twitter:site
+        // Google Search Console HTML-tag verification token. This is
+        // DOMAIN-specific — the value below is only valid for the domain it
+        // was generated for. When this template is reused on a new domain,
+        // generate a fresh token from Search Console for that domain and
+        // put it here; the old token will simply fail verification, not
+        // silently apply to the wrong property. Leave "" to omit the tag.
+        googleSiteVerification: "Hb43-qcbDjaLqIUMhgzm0JbaVOmwpel54u8QZK-FxO0"
     },
     mapAddress: { en: "265/57-58 Chaolai Rd. Soi 3, Cha-Am, Phetchaburi 76120", th: "265/57-58 ถนนเจ้าลาย ซอย 3 ชะอำ เพชรบุรี 76120" },
     mapUrl: "https://www.google.com/maps/search/?api=1&query=Celine+Pool+Villa+Cha-Am",
@@ -105,6 +131,11 @@ window.propertyConfig = {
     email: "",
     phone: "081 862 5007",
     contactUrl: "https://www.facebook.com/profile.php?id=61566361989612",
+    // Existing property data, kept intentionally even though nothing in
+    // index.html renders it today (no element has the matching
+    // [data-property-photos-link] attribute — see script.js). Same status
+    // as locationBody2 above: real content, not a placeholder, not deleted.
+    // Verified dead as of Fase 2.4 (2026-08-20) — see full-audit.md.
     photosUrl: "https://www.google.com/local/place/fid/0x30fd0300130af3ef:0xa74bff6b297cf5/photosphere",
     footerCopy: { en: "© 2026 Celine Pool Villa Cha-Am", th: "© 2026 Celine Pool Villa Cha-Am" },
 
@@ -131,6 +162,16 @@ window.propertyConfig = {
     // change the values in this block (plus branding/images elsewhere).
     booking: {
         enabled: true,
+
+        // Formspree endpoint booking requests are POSTed to (see
+        // submitBookingRequest() in script.js). Each property MUST have its
+        // own Formspree form — reusing another property's endpoint sends
+        // that property's booking requests to the wrong owner's inbox, with
+        // no visible error anywhere. Create a new form at
+        // https://formspree.io for each new property and paste its
+        // endpoint URL here. Leave "" to make the booking form fail loudly
+        // instead of silently submitting nowhere.
+        formspreeEndpoint: "https://formspree.io/f/mbgrqqlg",
 
         // --- Pricing shown to guests -----------------------------------
         // Set pricePerNight to 0 to hide all price display (calendar still
