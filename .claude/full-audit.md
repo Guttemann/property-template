@@ -554,6 +554,8 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 - `c281c71` — Fix accessibility issues 7-12 from audit
 - `a9b98bf` — docs: add senior code audit and implementation status
 - `514b97c` — Improve image loading performance
+- `b40e2d9` — Wire Facebook links to data-property-contact-link, sync audit status
+- *(uncommitted, denne økten)* — SEO hygiene: `robots.txt`, `sitemap.xml` generert av `scripts/sync-seo.js`
 
 ### Fase 0 — Gjør produktet reelt
 
@@ -569,7 +571,7 @@ Commits siden audit-punktet (`23921bd`), eldst først:
    ✅ **Lightbox fokusfelle + dialog-semantikk** (`4bf7ee3`) — verifisert: `role="dialog"`, `aria-modal="true"` og `aria-labelledby` på lightbox-elementet, Tab-fokusfelle og fokus-gjenoppretting til triggerelementet i script.js.
 3. 🟡 **Delvis** (`514b97c`) — galleri- og about-bilder har nå `loading="lazy"`, `decoding="async"` og eksplisitte `width`/`height` (fra nye `width`/`height`-felt på hvert `gallery`-objekt i `site-data.js`, brukt av `renderGallery()` i script.js). Hero-bildet har fått `<link rel="preload">` + `fetchpriority="high"` for raskere LCP. De 8 galleri-WebP-filene er også rekomprimert (~19 % mindre totalt, samme dimensjoner). Verifisert direkte i index.html, script.js og site-data.js. **Fortsatt ikke gjort:** `srcset`/`sizes` for responsive bildestørrelser — mobil laster fortsatt samme fil som desktop, kun færre bytes enn før.
 4. ❌ **Fortsatt ikke gjort** — ingen toppnivå try/catch rundt config-lasting/rendering. De try/catch-blokkene som finnes i dag er avgrenset til `initAnalytics()` og Formspree-innsendingen, ikke en generell guard rundt `window.propertyConfig`-bruk.
-5. 🟡 **Delvis** — Open Graph og Twitter Card-metadata er nå på plass (generert av `scripts/sync-seo.js`, verifisert i index.html). `robots.txt`, `sitemap.xml`, canonical-tag og JSON-LD strukturert data finnes fortsatt ikke i repoet.
+5. 🟡 **Delvis** — Open Graph og Twitter Card-metadata er på plass (generert av `scripts/sync-seo.js`, verifisert i index.html). **Nytt denne økten:** `robots.txt` (statisk, `Allow: /`, med kommentar om å legge til `Sitemap:`-linje når domene er satt) og `sitemap.xml` (generert av `scripts/sync-seo.js`, valid tomt `<urlset>` så lenge `seo.siteUrl` er tom — fylles automatisk med `<url><loc>` for forsiden neste gang scriptet kjøres etter at `siteUrl` er satt). Begge verifisert: servert korrekt fra lokal preview (`/robots.txt`, `/sitemap.xml`), XML validert som velformet (Chrome sin innebygde XML-parser), og manuelt testet at `buildSitemapXml()` produserer riktig `<loc>` når `siteUrl` er satt. Canonical-tag og JSON-LD strukturert data finnes fortsatt ikke — canonical er allerede kodeferdig i `sync-seo.js` og aktiveres automatisk når `siteUrl` settes; JSON-LD er bevisst utsatt til domenet er reelt (se vurdering under).
 
 ### Fase 2 — Forbered faktisk gjenbruk
 
@@ -599,10 +601,13 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
 
 ### Kort oppsummert
 
-**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), og deler av §11 accessibility utover roadmapen.
+**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, og SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`, denne økten).
+
+**Bevisst utsatt** (ikke gjenstående arbeid, men en vurdering gjort denne økten): canonical-tag og JSON-LD strukturert data. Canonical er allerede kodeferdig i `sync-seo.js` og trenger ingen ny kode — kun at `seo.siteUrl` fylles inn med et ekte domene. JSON-LD ble vurdert og bevisst holdt utenfor: et `LodgingBusiness`-skjema med feil/manglende felt (pris, adresse, bilder som endrer seg per property) er nettopp den typen "bygd fordi det var mulig" audit-en advarer mot i §19, og gir ingen reell verdi før siden faktisk er indekserbar på et ekte domene. Begge bør tas i samme omgang som §12 sitt gjenværende 🟠-funn (separate URL-er/hreflang for thai) — når domenet er satt.
 
 **Neste naturlige steg** (i prioritert rekkefølge, følger roadmapens egen logikk):
 1. Fase 1, punkt 3 (rest) — vurder `srcset`/`sizes` for responsive bildestørrelser (lazy-loading/dimensjoner er allerede løst av `514b97c`).
-2. Fase 1, punkt 4–5 — try/catch rundt config-lasting, og resten av SEO-hygienen (robots.txt, sitemap.xml, canonical, JSON-LD).
+2. Fase 1, punkt 4 — try/catch rundt config-lasting med synlig feilmelding (siste gjenstående punkt i Fase 1 utover det som nå er dekket).
 3. Fase 1, punkt 10-touch-mål — `guest-btn`/`cal-nav` opp mot ~44px, siden dette fortsatt er åpent og henger tematisk sammen med accessibility-arbeidet som allerede pågår.
 4. Fase 2 i sin helhet — ingen av de fem punktene er startet ennå, og flere av dem (unit-tester, `||`/`??`, dødt `locationBody2`-felt) er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19.
+5. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
