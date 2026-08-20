@@ -108,6 +108,14 @@ window.propertyConfig = {
         minimumStay: 1,
         maximumStay: null, // null = no maximum
 
+        // How many months ahead a guest may check in. Keeps the calendar
+        // from showing bookable dates years out that this hand-edited
+        // blockedDates list was never realistically going to cover, and
+        // keeps the quoted pricePerNight from being used far past when it
+        // was actually set. null = no horizon (not recommended — see
+        // bookingHorizonMonths handling in script.js).
+        bookingHorizonMonths: 12,
+
         // Maximum guests the property can host. Keep in sync with the
         // "guests" fact above if that changes.
         maximumGuests: 15,

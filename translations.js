@@ -87,6 +87,7 @@ const translations = {
         selectBothDatesMessage: "Please select a check-in and check-out date.",
         checkoutAfterCheckinMessage: "Check-out must be after check-in.",
         pastDateMessage: "Past dates can't be selected.",
+        bookingHorizonMessage: "Check-in must be on or before {date}.",
         rangeBlockedMessage: "One or more of those nights is already booked.",
 
         cleaningFeeLabel: "Cleaning fee",
@@ -199,6 +200,7 @@ const translations = {
         selectBothDatesMessage: "กรุณาเลือกวันเช็กอินและเช็กเอาต์",
         checkoutAfterCheckinMessage: "วันเช็กเอาต์ต้องอยู่หลังวันเช็กอิน",
         pastDateMessage: "ไม่สามารถเลือกวันที่ผ่านมาแล้วได้",
+        bookingHorizonMessage: "วันเช็กอินต้องไม่เกินวันที่ {date}",
         rangeBlockedMessage: "มีบางคืนในช่วงที่เลือกถูกจองไว้แล้ว",
 
         cleaningFeeLabel: "ค่าทำความสะอาด",

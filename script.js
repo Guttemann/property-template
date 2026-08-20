@@ -266,6 +266,8 @@ const bookingState = {
     maxGuests: 1,
     minimumStay: 1,
     maximumStay: null,      // number of nights, or null = no maximum
+    bookingHorizonMonths: 12, // months ahead check-in may be selected, or null = no horizon
+    maxCheckInDate: null,    // Date, derived from bookingHorizonMonths — last selectable check-in
     blockedDates: new Set(), // "YYYY-MM-DD" strings
     viewMonth: null,         // Date, first of the visible month
     lastResult: null,        // { available: boolean, nights?: number }
@@ -310,6 +312,7 @@ async function getBlockedDates() {
 // (never guessed at, never left to throw).
 const BLOCKED_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_BLOCKED_RANGE_NIGHTS = 730; // ~2 years; catches a typo'd year turning one range into a huge/frozen block
+const DEFAULT_BOOKING_HORIZON_MONTHS = 12;
 
 // Rejects anything that isn't a real calendar date in "YYYY-MM-DD" form —
 // including strings like "2026-02-30" that the regex lets through but that
@@ -399,6 +402,17 @@ function addDays(date, amount) {
     return result;
 }
 
+// Last selectable check-in date, or null if there's no horizon. Uses the
+// same setMonth() arithmetic as shiftMonth() elsewhere in this file, so a
+// horizon crossing a short month (e.g. today = Jan 31, +1 month) rolls over
+// consistently with how month navigation already behaves.
+function computeMaxCheckInDate(bookingHorizonMonths) {
+    if (bookingHorizonMonths == null) return null;
+    const max = todayStart();
+    max.setMonth(max.getMonth() + bookingHorizonMonths);
+    return max;
+}
+
 function isSameDate(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -452,6 +466,27 @@ async function initBooking() {
             bookingState.maximumStay = parsedMaximumStay;
         }
     }
+
+    const rawBookingHorizonMonths = config.booking.bookingHorizonMonths;
+    if (rawBookingHorizonMonths === null) {
+        // Explicit opt-out — property owner deliberately wants no horizon.
+        bookingState.bookingHorizonMonths = null;
+    } else if (rawBookingHorizonMonths === undefined) {
+        bookingState.bookingHorizonMonths = DEFAULT_BOOKING_HORIZON_MONTHS;
+    } else {
+        const parsedBookingHorizonMonths = Number(rawBookingHorizonMonths);
+        if (!Number.isFinite(parsedBookingHorizonMonths) || parsedBookingHorizonMonths <= 0) {
+            // Fails open to the safe default rather than "no horizon" — unlike
+            // maximumStay, the open/unlimited direction here is the risky one
+            // (see bookingHorizonMonths comment in site-data.js), so a typo'd
+            // config shouldn't silently remove the guardrail.
+            console.warn(`Invalid booking.bookingHorizonMonths (${JSON.stringify(rawBookingHorizonMonths)}); using the default of ${DEFAULT_BOOKING_HORIZON_MONTHS} months.`);
+            bookingState.bookingHorizonMonths = DEFAULT_BOOKING_HORIZON_MONTHS;
+        } else {
+            bookingState.bookingHorizonMonths = parsedBookingHorizonMonths;
+        }
+    }
+    bookingState.maxCheckInDate = computeMaxCheckInDate(bookingState.bookingHorizonMonths);
 
     bookingState.maxGuests = Math.max(1, Number(config.booking.maximumGuests) || 1);
     bookingState.guests = 1;
@@ -558,7 +593,11 @@ function renderCalendar() {
         const isPast = date < today;
         const isBlockedNight = bookingState.blockedDates.has(iso);
         const isCheckoutCandidate = isSelectingCheckout && date > bookingState.checkIn;
-        const isDisabled = isPast || (isBlockedNight && !isCheckoutCandidate);
+        // The horizon bounds check-in dates only (see computeMaxCheckInDate).
+        // A checkout beyond it books no night past the horizon itself, so —
+        // same as isBlockedNight above — it must stay pickable as a checkout.
+        const isBeyondHorizon = bookingState.maxCheckInDate != null && date > bookingState.maxCheckInDate;
+        const isDisabled = isPast || (isBlockedNight && !isCheckoutCandidate) || (isBeyondHorizon && !isCheckoutCandidate);
 
         const isCheckIn = bookingState.checkIn && isSameDate(date, bookingState.checkIn);
         const isCheckOut = bookingState.checkOut && isSameDate(date, bookingState.checkOut);
@@ -575,11 +614,18 @@ function renderCalendar() {
         cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" ${isDisabled ? "disabled" : ""} aria-label="${iso}">${day}</button>`;
     }
 
+    // Only cap forward navigation while starting a fresh check-in — once the
+    // guest is choosing a checkout, they may need a later month to reach a
+    // legitimate checkout date beyond the horizon (see isBeyondHorizon above).
+    const maxCheckInDate = bookingState.maxCheckInDate;
+    const isAtMaxMonth = !isSelectingCheckout && maxCheckInDate != null &&
+        year === maxCheckInDate.getFullYear() && month === maxCheckInDate.getMonth();
+
     container.innerHTML = `
         <div class="cal-header">
             <button type="button" class="cal-nav cal-prev" aria-label="Previous month" ${isCurrentMonth ? "disabled" : ""}>‹</button>
             <span class="cal-month-label">${months[month]} ${year}</span>
-            <button type="button" class="cal-nav cal-next" aria-label="Next month">›</button>
+            <button type="button" class="cal-nav cal-next" aria-label="Next month" ${isAtMaxMonth ? "disabled" : ""}>›</button>
         </div>
         <div class="cal-weekdays">${weekdays.map(w => `<span>${w}</span>`).join("")}</div>
         <div class="cal-grid">${cells}</div>
@@ -599,6 +645,16 @@ function shiftMonth(delta) {
     const currentMonthStart = todayStart();
     currentMonthStart.setDate(1);
     if (next < currentMonthStart) return;
+
+    // Same checkout-selection exemption as the "next" button's disabled
+    // state in renderCalendar() — don't strand a guest whose checkout falls
+    // in a month past the check-in horizon.
+    const isSelectingCheckout = Boolean(bookingState.checkIn) && !bookingState.checkOut;
+    if (!isSelectingCheckout && bookingState.maxCheckInDate != null) {
+        const maxMonthStart = new Date(bookingState.maxCheckInDate.getFullYear(), bookingState.maxCheckInDate.getMonth(), 1);
+        if (next > maxMonthStart) return;
+    }
+
     bookingState.viewMonth = next;
     renderCalendar();
 }
@@ -659,6 +715,12 @@ async function handleCheckAvailability() {
     }
     if (bookingState.checkIn < todayStart()) {
         showValidationMessage("pastDateMessage");
+        return;
+    }
+    // Horizon bounds check-in only — a checkout past it is fine, same as the
+    // calendar UI (see isBeyondHorizon in renderCalendar).
+    if (bookingState.maxCheckInDate != null && bookingState.checkIn > bookingState.maxCheckInDate) {
+        showValidationMessage("bookingHorizonMessage", { date: formatDisplayDate(bookingState.maxCheckInDate) });
         return;
     }
 
