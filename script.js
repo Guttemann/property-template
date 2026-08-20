@@ -736,8 +736,16 @@ function calculateBookingPrice(nights) {
     return { currency, pricePerNight, nights, roomTotal, cleaningFee, serviceFee, total };
 }
 
+// Locale used for number formatting, keyed by the site's own language
+// toggle — not the visitor's browser/OS locale. That keeps grouping and
+// decimal separators identical for every guest regardless of their device
+// settings, and still follows the EN/TH choice made on the page.
+const NUMBER_LOCALES = { en: "en-US", th: "th-TH" };
+
 function formatMoney(amount, currency) {
-    return `${Number(amount).toLocaleString()}${currency ? " " + currency : ""}`;
+    const locale = NUMBER_LOCALES[currentLanguage] || NUMBER_LOCALES.en;
+    const formatted = Number(amount).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return `${formatted}${currency ? " " + currency : ""}`;
 }
 
 // Renders the price breakdown as HTML rows (rate × nights, fees, total).
