@@ -543,7 +543,7 @@ Ingen kode er endret som del av denne gjennomgangen. Alle linjereferanser peker 
 
 ## Implementation Status
 
-*Sist oppdatert: 2026-08-20, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i denne økten (inkl. config loading/error handling i `script.js`, og en målt srcset/sizes-kost/gevinst-analyse). Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
+*Sist oppdatert: 2026-08-20, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i denne økten (inkl. config loading/error handling i `script.js`, en målt srcset/sizes-kost/gevinst-analyse, og §10 sitt touch-mål-funn fikset og verifisert i nettleser på desktop + mobil). Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
 
 Commits siden audit-punktet (`23921bd`), eldst først:
 
@@ -557,7 +557,8 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 - `b40e2d9` — Wire Facebook links to data-property-contact-link, sync audit status
 - `ebe8899` — Add robots.txt and sitemap.xml for SEO hygiene
 - `934b6c5` — Add config loading error handling for site-data.js
-- *(uncommitted, denne økten)* — Ingen kodeendring: kost/gevinst-analyse av `srcset`/`sizes` (Fase 1, gjenstående del av punkt 3), konklusjon dokumentert under, punktet bevisst utsatt
+- *(uncommitted, denne økten)* — Touch-mål på `.guest-btn`/`.cal-nav` utvidet til 44×44px reell treffflate, kodeendring gjort og testet, ikke committet ennå (se Fase 1-status under)
+- *(uncommitted, tidligere denne økten)* — Ingen kodeendring: kost/gevinst-analyse av `srcset`/`sizes` (Fase 1, gjenstående del av punkt 3), konklusjon dokumentert under, punktet bevisst utsatt
 
 ### Fase 0 — Gjør produktet reelt
 
@@ -616,13 +617,23 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
 
 - ✅ Språkbytte-knapper har nå `aria-pressed`, synkronisert i `setLanguage()` (`c281c71`).
 - ✅ Hamburgermeny har nå `aria-expanded`/`aria-controls` og korrekt label (`c281c71`).
-- 🟡 Hamburgerknappens touch-mål ble utvidet til 44×44px (`4bf7ee3`) — men dette er *ikke* de samme elementene audit-en pekte på i §10 (`guest-btn` 32px, `cal-nav` 34px). Verifisert: begge er fortsatt uendret i style.css. §10 sitt funn, slik det faktisk er skrevet, er derfor fortsatt åpent.
+- ✅ Hamburgerknappens touch-mål ble utvidet til 44×44px (`4bf7ee3`) — men det var *ikke* de samme elementene audit-en pekte på i §10 (`guest-btn` 32px, `cal-nav` 34px). §10 sitt funn er nå adressert separat, denne økten (uncommitted): begge var fortsatt uendret i style.css ved verifisering — og `.cal-nav` viste seg faktisk å være verre enn audit-en dokumenterte, siden en egen mobil-override (`@media max-width: 560px`) krymper den ytterligere til 30×30px, altså minst treffflate nettopp på de smaleste skjermene.
+
+  **Fiks:** lagt til en usynlig `44×44px` `::before`-pseudo-element sentrert over hver `.guest-btn`/`.cal-nav`-knapp (`position: relative` på knappen + `position: absolute` pseudo-element), i stedet for å endre selve `width`/`height`. Dette gir full 44×44px treffflate uten å endre knappenes synlige piksel-størrelse i det hele tatt — samme prinsipp som allerede brukt for `.menu-toggle` (`min-width/min-height: 44px` rundt en visuelt mindre glyph, style.css:200-209), men her som en fullstendig usynlig hitbox siden knappene er sirkulære og skal se identiske ut.
+
+  **Verifisert i nettleser** (desktop 1280px og mobil 375px, live DOM-målinger, ikke antatt):
+  - Synlig boks uendret: `guest-btn` ~31.5×31.5px, `cal-nav` 30×30px på mobil / ~33.5×33.5px på desktop — innenfor sub-piksel avrunding av originalverdiene (32px / 30px / 34px).
+  - Usynlig treffflate bekreftet 44×44px via `getComputedStyle(el, '::before')` på begge elementer, begge breakpoints.
+  - Ingen overlapp: gap mellom guest-minus/plus sin 44px-hitbox og gjeste-input er ~7.5px på både desktop og mobil; gap mellom cal-prev/next sin 44px-hitbox og månedslabelen er ~172px (desktop) / ~38.6px (mobil, smaleste kalender-container) — begge trygt positive.
+  - Funksjonelt testet: gjeste-stepper (+/−) endrer verdi korrekt, kalendernavigasjon (‹/›) bytter måned korrekt, full booking-flyt (velg datoer → sjekk tilgjengelighet → resultat vises) fungerer uendret, på både 1280px og 375px viewport.
+  - Ingen nye konsollfeil i noen av testene.
+  - `.cal-day` (selve kalenderdatoene) ble også målt: ~33px på 375px mobilbredde, altså også under 44px — men å øke denne krever å regne om hele 7-kolonners kalendergrid-bredden, som ville krysse inn i kalender-redesign. Bevisst latt urørt; dokumentert som kjent, lavt-prioritert gap, ikke et nytt funn utover det §10 allerede dekket.
 - ❌ Kalenderdatoer har fortsatt kun ISO-datostrengen som `aria-label` — ingen forklaring på *hvorfor* en dato er deaktivert. Denne spesifikke delen av §11-funnet er ikke adressert.
 - **Ny funksjonalitet utover audit-scope:** `aria-live`-region for kalenderens månedsnavigasjon, fokushåndtering på anker-navigasjon (inkl. skip-to-main-content-lenke) og støtte for `prefers-reduced-motion` ble lagt til i `c281c71`. Ingen av disse var eksplisitte funn i denne audit-en, men styrker samme accessibility-område.
 
 ### Kort oppsummert
 
-**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`), og nå config loading/error handling (`reportConfigError()` + array-guards + try/catch-sikkerhetsnett + async-riktig init-sekvens) — dermed er hele Fase 1 fullført bortsett fra `srcset`/`sizes` og touch-mål-punktet under.
+**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`), config loading/error handling (`reportConfigError()` + array-guards + try/catch-sikkerhetsnett + async-riktig init-sekvens), og nå §10 sitt touch-mål-funn (`guest-btn`/`cal-nav` opp til 44×44px reell treffflate via usynlig hitbox, se detaljer over) — dermed er hele Fase 1 fullført bortsett fra `srcset`/`sizes`, som er bevisst utsatt (se under), ikke gjenstående.
 
 **Bevisst utsatt** (ikke gjenstående arbeid, men vurderinger gjort med fullt kost/gevinst-grunnlag):
 
@@ -641,7 +652,6 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
   Ikke en glemt revisjon — en bevisst prioritering: kost (evigvarende manuell multiplikator per bilde per property) vurdert høyere enn gevinst (moderat, mobil-only, ikke-LCP, allerede delvis dempet av lazy loading) med kun én property i drift.
 
 **Neste naturlige steg** (i prioritert rekkefølge, følger roadmapens egen logikk):
-1. Fase 1, touch-mål — `guest-btn`/`cal-nav` opp mot ~44px, siden dette fortsatt er åpent og henger tematisk sammen med accessibility-arbeidet som allerede pågår. Med config-loading-arbeidet ferdig og `srcset`/`sizes` nå bevisst utsatt (se over) er dette det eneste reelt gjenstående punktet i Fase 1.
-2. Fase 2 i sin helhet — ingen av de fem punktene er startet ennå, og flere av dem (unit-tester, `||`/`??`, dødt `locationBody2`-felt) er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19. Punkt 1 (dokumentert "ny property"-sjekkliste) bør skrives med `srcset`/`sizes`-forutsetningen fra over i bakhodet, selv om selve srcset-implementasjonen ikke gjøres nå.
-3. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
-4. Når property #2 er reell, eller et enkelt lokalt resize-script er verdt å innføre: gjenåpne `srcset`/`sizes`-vurderingen over — grunnlaget (mål, breakpoints, filstørrelser) er allerede dokumentert her og trenger ikke gjøres på nytt.
+1. Fase 2 i sin helhet — ingen av de fem punktene er startet ennå, og flere av dem (unit-tester, `||`/`??`, dødt `locationBody2`-felt) er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19. Punkt 1 (dokumentert "ny property"-sjekkliste) bør skrives med `srcset`/`sizes`-forutsetningen fra over i bakhodet, selv om selve srcset-implementasjonen ikke gjøres nå. Med touch-mål-funnet fra §10 nå lukket er Fase 1 ferdig i sin helhet (bortsett fra det bevisst utsatte `srcset`/`sizes`-punktet), så Fase 2 er det naturlige neste steget.
+2. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
+3. Når property #2 er reell, eller et enkelt lokalt resize-script er verdt å innføre: gjenåpne `srcset`/`sizes`-vurderingen over — grunnlaget (mål, breakpoints, filstørrelser) er allerede dokumentert her og trenger ikke gjøres på nytt.
