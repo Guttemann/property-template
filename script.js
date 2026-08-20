@@ -293,6 +293,13 @@ async function getBlockedDates() {
 // ISO date strings that the calendar can check in O(1). Keeping this
 // separate from getBlockedDates() means a future iCal/API source can return
 // either shape too, with no changes needed here.
+//
+// Each date in the returned Set means "the night starting on this date is
+// occupied" — it does not mean the calendar day is fully closed. The day
+// right after a range's `to` is deliberately left out, so it stays open as
+// a check-in for the next guest, and renderCalendar() separately allows a
+// blocked date to still be picked as a check-out (see isCheckoutCandidate
+// there) — together that's what makes back-to-back turnover days work.
 function expandBlockedDates(rawList) {
     const dates = new Set();
     (rawList || []).forEach(entry => {
@@ -460,6 +467,16 @@ function renderCalendar() {
     const firstWeekday = (firstOfMonth.getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+    // A date in blockedDates means that date's *night* is occupied — it
+    // does not mean the calendar day itself is unusable. While the guest is
+    // picking a check-out (check-in already chosen, check-out not yet), a
+    // later date is only ever used as the day they leave, which books no
+    // night of its own. So it must stay pickable even if it's the first
+    // night of the next booking — that's a same-day turnover with zero
+    // night overlap, and isRangeClear() below still rejects any date whose
+    // *in-between* nights are occupied.
+    const isSelectingCheckout = Boolean(bookingState.checkIn) && !bookingState.checkOut;
+
     let cells = "";
     for (let i = 0; i < firstWeekday; i++) {
         cells += `<span class="cal-day is-empty" aria-hidden="true"></span>`;
@@ -469,8 +486,9 @@ function renderCalendar() {
         const date = new Date(year, month, day);
         const iso = formatISODate(date);
         const isPast = date < today;
-        const isBlocked = bookingState.blockedDates.has(iso);
-        const isDisabled = isPast || isBlocked;
+        const isBlockedNight = bookingState.blockedDates.has(iso);
+        const isCheckoutCandidate = isSelectingCheckout && date > bookingState.checkIn;
+        const isDisabled = isPast || (isBlockedNight && !isCheckoutCandidate);
 
         const isCheckIn = bookingState.checkIn && isSameDate(date, bookingState.checkIn);
         const isCheckOut = bookingState.checkOut && isSameDate(date, bookingState.checkOut);
@@ -479,7 +497,7 @@ function renderCalendar() {
 
         const classes = ["cal-day"];
         if (isDisabled) classes.push("is-disabled");
-        if (isBlocked) classes.push("is-blocked");
+        if (isBlockedNight) classes.push("is-blocked");
         if (isCheckIn) classes.push("is-checkin");
         if (isCheckOut) classes.push("is-checkout");
         if (isInRange) classes.push("is-in-range");
