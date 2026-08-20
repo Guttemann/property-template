@@ -256,6 +256,79 @@ window.addEventListener("keydown", (event) => {
 });
 
 // =========================
+// ANALYTICS
+// =========================
+
+const GA4_ID_PATTERN = /^G-[A-Z0-9]{4,}$/i;
+const CLARITY_ID_PATTERN = /^[a-z0-9]{6,}$/i;
+
+function loadGA4(measurementId) {
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+    document.head.appendChild(script);
+
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { window.dataLayer.push(arguments); }
+    window.gtag = gtag;
+    gtag("js", new Date());
+    gtag("config", measurementId);
+}
+
+function loadClarity(projectId) {
+    (function (c, l, a, r, i, t, y) {
+        c[a] = c[a] || function () {
+            (c[a].q = c[a].q || []).push(arguments);
+        };
+        t = l.createElement(r);
+        t.async = 1;
+        t.src = "https://www.clarity.ms/tag/" + i;
+        y = l.getElementsByTagName(r)[0];
+        y.parentNode.insertBefore(t, y);
+    })(window, document, "clarity", "script", projectId);
+}
+
+// null/undefined (key omitted) count as "blank"; any other non-string
+// (e.g. a number typed without quotes) is stringified so it still hits
+// the format check below instead of being silently ignored.
+function normalizeAnalyticsId(rawValue) {
+    if (rawValue === null || rawValue === undefined) return "";
+    return String(rawValue).trim();
+}
+
+// Reads propertyConfig.analytics and loads GA4/Clarity only for IDs that
+// are present and well-formed. A blank ID means "disabled" and is skipped
+// silently; an invalid non-blank ID is skipped with a console.warn. Never
+// throws — a bad config, a blocked request (ad blocker) or any other
+// unexpected failure here must not stop the rest of the page, and in
+// particular the booking flow, from working.
+function initAnalytics() {
+    try {
+        const analytics = (window.propertyConfig && window.propertyConfig.analytics) || {};
+
+        const ga4Id = normalizeAnalyticsId(analytics.ga4MeasurementId);
+        if (ga4Id) {
+            if (GA4_ID_PATTERN.test(ga4Id)) {
+                loadGA4(ga4Id);
+            } else {
+                console.warn(`Invalid analytics.ga4MeasurementId (${JSON.stringify(analytics.ga4MeasurementId)}); expected a GA4 Measurement ID like "G-XXXXXXXXXX". Skipping GA4.`);
+            }
+        }
+
+        const clarityId = normalizeAnalyticsId(analytics.clarityProjectId);
+        if (clarityId) {
+            if (CLARITY_ID_PATTERN.test(clarityId)) {
+                loadClarity(clarityId);
+            } else {
+                console.warn(`Invalid analytics.clarityProjectId (${JSON.stringify(analytics.clarityProjectId)}); expected a Microsoft Clarity project ID. Skipping Clarity.`);
+            }
+        }
+    } catch (error) {
+        console.warn("Analytics failed to initialize; continuing without it.", error);
+    }
+}
+
+// =========================
 // BOOKING / AVAILABILITY
 // =========================
 
@@ -1110,5 +1183,6 @@ function refreshBookingTexts() {
 }
 
 // INIT
+initAnalytics();
 setLanguage(currentLanguage);
 initBooking();

@@ -84,6 +84,18 @@ window.propertyConfig = {
     photosUrl: "https://www.google.com/local/place/fid/0x30fd0300130af3ef:0xa74bff6b297cf5/photosphere",
     footerCopy: { en: "© 2026 Celine Pool Villa Cha-Am", th: "© 2026 Celine Pool Villa Cha-Am" },
 
+    // ANALYTICS
+    // Loaded dynamically by initAnalytics() in script.js — no other file
+    // needs editing to enable/disable/replace these per property.
+    // Leave either value as an empty string "" to disable that tracker
+    // (e.g. before analytics is set up for a new property, or if the
+    // owner doesn't want tracking). An invalid (non-empty, wrong-format)
+    // value is skipped with a console.warn rather than sent as-is.
+    analytics: {
+        ga4MeasurementId: "G-CSNWFHLD8T", // GA4 "Measurement ID", format "G-XXXXXXXXXX"
+        clarityProjectId: "y120opf0wr"    // Microsoft Clarity project ID
+    },
+
     // BOOKING / AVAILABILITY
     // This is v1 of the booking system: manual blocked dates, no live
     // channel-manager sync yet. Everything the calendar/UI needs is read
