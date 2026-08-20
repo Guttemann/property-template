@@ -543,7 +543,7 @@ Ingen kode er endret som del av denne gjennomgangen. Alle linjereferanser peker 
 
 ## Implementation Status
 
-*Sist oppdatert: 2026-08-20, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i denne økten. Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
+*Sist oppdatert: 2026-08-20, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i denne økten (inkl. `514b97c`). Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
 
 Commits siden audit-punktet (`23921bd`), eldst først:
 
@@ -552,20 +552,22 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 - `a0daf7e` — Make SEO property-configurable
 - `4bf7ee3` — Fix top 6 accessibility issues from audit
 - `c281c71` — Fix accessibility issues 7-12 from audit
+- `a9b98bf` — docs: add senior code audit and implementation status
+- `514b97c` — Improve image loading performance
 
 ### Fase 0 — Gjør produktet reelt
 
 1. ✅ **`submitBookingRequest()` koblet til ekte tjeneste** (`7c347e9`) — sender nå til Formspree (`FORMSPREE_ENDPOINT` i script.js), inkludert CC til eierens kontakt-e-post fra `site-data.js` (`booking.contact.email`). §03 er lukket.
 2. ✅ **GA4/Clarity-ID flyttet til config** (`00d86be`) — `site-data.js` har nå `analytics.ga4MeasurementId` / `analytics.clarityProjectId`, lastet dynamisk av `initAnalytics()` i script.js med formatvalidering. index.html har ikke lenger noen ID-er i `<head>`. §02 (analytics-delen) er lukket.
 3. ✅ **Tittel/meta description koblet til config + oppdateres ved språkbytte** (`a0daf7e`) — `site-data.js` har et `seo`-block; `scripts/sync-seo.js` genererer den statiske HTML-en (for lenke-forhåndsvisnings-roboter), og `applySeoMeta()` i script.js oppdaterer `document.title`/meta description dynamisk hver gang `setLanguage()` kjører. Verifisert: `renderStaticContent()` kaller `applySeoMeta()`, og `setLanguage()` kaller `renderStaticContent()`. §02 (SEO-delen) og §12 sitt kritiske funn er begge lukket.
-4. ❌ **Fortsatt ikke gjort** — de tre Facebook-lenkene (`index.html:360, 379, 388`) er fortsatt hardkodet `href="https://www.facebook.com/..."`. `[data-property-contact-link]`-attributtet som script.js allerede støtter, brukes fortsatt ikke der.
+4. ✅ **Facebook-lenkene koblet til `data-property-contact-link`** — "Contact Owner"-knappen ([index.html:363](../index.html)) og footer "Social"-lenken ([index.html:391](../index.html)) er nå `href="#" data-property-contact-link`, satt til `config.contactUrl` av den eksisterende `script.js:177`-handleren. Footer-kontaktlenken ([index.html:382–383](../index.html), `data-property-email`) var allerede korrekt config-drevet fra før (faller tilbake til `config.contactUrl` når `config.email` er tom) og ble bevisst ikke rørt, for ikke å ødelegge fallback til ekte e-post når en property får en. Verifisert i nettleser: begge nye lenkene, den eksisterende e-post-fallback-lenken og telefonlenken resolver alle korrekt fra `site-data.js`, ingen konsollfeil. §02 sitt 🟠-funn er lukket.
 
 ### Fase 1 — Produksjonsherding for property #1
 
 1. ✅ **Honeypot/anti-spam** (kom med `7c347e9`) — skjult `_gotcha`-felt i skjemaet (`reqCompany`), og `submitBookingRequest()` returnerer stille suksess uten å sende noe hvis feltet er utfylt.
 2. ✅ **Kontrastforhold på `--muted`** (`4bf7ee3`) — verifisert i style.css: `--muted: #5c6b63` (var `#718078` i audit-en), akkurat verdien audit-en foreslo.
    ✅ **Lightbox fokusfelle + dialog-semantikk** (`4bf7ee3`) — verifisert: `role="dialog"`, `aria-modal="true"` og `aria-labelledby` på lightbox-elementet, Tab-fokusfelle og fokus-gjenoppretting til triggerelementet i script.js.
-3. ❌ **Fortsatt ikke gjort** — galleribilder mangler fortsatt `loading="lazy"`, `width`/`height` og `srcset`/`sizes` (verifisert i `renderGallery()`, script.js).
+3. 🟡 **Delvis** (`514b97c`) — galleri- og about-bilder har nå `loading="lazy"`, `decoding="async"` og eksplisitte `width`/`height` (fra nye `width`/`height`-felt på hvert `gallery`-objekt i `site-data.js`, brukt av `renderGallery()` i script.js). Hero-bildet har fått `<link rel="preload">` + `fetchpriority="high"` for raskere LCP. De 8 galleri-WebP-filene er også rekomprimert (~19 % mindre totalt, samme dimensjoner). Verifisert direkte i index.html, script.js og site-data.js. **Fortsatt ikke gjort:** `srcset`/`sizes` for responsive bildestørrelser — mobil laster fortsatt samme fil som desktop, kun færre bytes enn før.
 4. ❌ **Fortsatt ikke gjort** — ingen toppnivå try/catch rundt config-lasting/rendering. De try/catch-blokkene som finnes i dag er avgrenset til `initAnalytics()` og Formspree-innsendingen, ikke en generell guard rundt `window.propertyConfig`-bruk.
 5. 🟡 **Delvis** — Open Graph og Twitter Card-metadata er nå på plass (generert av `scripts/sync-seo.js`, verifisert i index.html). `robots.txt`, `sitemap.xml`, canonical-tag og JSON-LD strukturert data finnes fortsatt ikke i repoet.
 
@@ -597,10 +599,10 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
 
 ### Kort oppsummert
 
-**Ferdig:** hele Fase 0 unntatt Facebook-lenkene, honeypot + kontrast + lightbox-fokusfelle fra Fase 1, og deler av §11 accessibility utover roadmapen.
+**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), og deler av §11 accessibility utover roadmapen.
 
 **Neste naturlige steg** (i prioritert rekkefølge, følger roadmapens egen logikk):
-1. Fase 0, punkt 4 — Facebook-lenkene til `data-property-contact-link` (liten, avgrenset endring, siste rest av Fase 0).
-2. Fase 1, punkt 3–5 — bildeperformance (lazy-loading/dimensjoner), try/catch rundt config-lasting, og resten av SEO-hygienen (robots.txt, sitemap.xml, canonical, JSON-LD).
+1. Fase 1, punkt 3 (rest) — vurder `srcset`/`sizes` for responsive bildestørrelser (lazy-loading/dimensjoner er allerede løst av `514b97c`).
+2. Fase 1, punkt 4–5 — try/catch rundt config-lasting, og resten av SEO-hygienen (robots.txt, sitemap.xml, canonical, JSON-LD).
 3. Fase 1, punkt 10-touch-mål — `guest-btn`/`cal-nav` opp mot ~44px, siden dette fortsatt er åpent og henger tematisk sammen med accessibility-arbeidet som allerede pågår.
 4. Fase 2 i sin helhet — ingen av de fem punktene er startet ennå, og flere av dem (unit-tester, `||`/`??`, dødt `locationBody2`-felt) er eksplisitt merket "billig å rette nå, dyrt å utsette" i audit-ens §19.
