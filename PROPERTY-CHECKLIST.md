@@ -12,7 +12,8 @@ Referanse: full teknisk gjennomgang i [full-audit.md](.claude/full-audit.md).
 
 ## 0. Forutsetninger
 
-- [ ] Node.js installert (kreves for `node scripts/sync-seo.js` — se seksjon 8 — og for `node --test` — se seksjon 10)
+- [ ] Node.js installert (kreves for `node scripts/sync-seo.js` — se seksjon 8 — og for `node --test`/`node scripts/validate-config.js` — se seksjon 10)
+- [ ] npm/npx tilgjengelig **og** nettverkstilgang til npm-registryet (valgfritt — kun hvis du vil kjøre `node scripts/validate-config.js`, se seksjon 10. Kjører `npx ajv-cli@5.0.0` — ikke installert i prosjektet, hentes/caches av npx ved første kjøring)
 - [ ] Python installert (valgfritt — kun for lokal forhåndsvisning via `.claude/launch.json`, `python -m http.server 5173`)
 - [ ] Egen Formspree-konto/skjema for den nye propertyen (se seksjon 6 — **kritisk**, ikke valgfritt)
 - [ ] Egen GA4-property og Microsoft Clarity-prosjekt for den nye propertyen (se seksjon 7)
@@ -186,10 +187,11 @@ Malen støtter i dag **nøyaktig to språk: `en` og `th`** — hardkodet flere s
 
 ## 10. Deployment/verification
 
-- [ ] Ingen build-steg — rene statiske filer, deploy `index.html` + `style.css` + `script.js` + `booking-logic.js` + `site-data.js` + `translations.js` + `assets/` + `robots.txt` + `sitemap.xml` som de er. `booking-logic.js` er **runtime**, ikke bare test-infrastruktur — `index.html` laster den som en vanlig `<script>` før `script.js`, og siden er ødelagt uten den. `tests/` (og `node --test` selv) er derimot dev-only og trenger **ikke** deployes.
+- [ ] Ingen build-steg — rene statiske filer, deploy `index.html` + `style.css` + `script.js` + `booking-logic.js` + `site-data.js` + `translations.js` + `assets/` + `robots.txt` + `sitemap.xml` som de er. `booking-logic.js` er **runtime**, ikke bare test-infrastruktur — `index.html` laster den som en vanlig `<script>` før `script.js`, og siden er ødelagt uten den. `tests/`, `schema/` og `scripts/validate-config.js` (og `node --test` selv) er derimot dev-only og trenger **ikke** deployes.
 - [ ] Lokal forhåndsvisning: `.claude/launch.json` kjører `python -m http.server 5173` — ingen property-spesifikk konfigurasjon her
 - [ ] Kjør `node scripts/sync-seo.js` **etter** siste endring i `site-data.js`, **før** deploy (se seksjon 8)
-- [ ] Kjør `node --test` **før** deploy — 51 tester dekker dato-/blokkering-/prislogikken (`booking-logic.js`) og feiler raskt (< 1s) hvis en fremtidig endring bryter noe her. Ingen `npm install` nødvendig (Node sin innebygde testrunner).
+- [ ] **Anbefalt, valgfritt:** kjør `node scripts/validate-config.js` **etter** at `site-data.js` er ferdig redigert for den nye propertyen, **før** `node --test`/smoke-test under. Validerer hele configen mot [schema/property-config.schema.json](../schema/property-config.schema.json) (JSON Schema Draft-07) — fanger opp ting som et manglende required-felt, en feilstavet `icon`-nøkkel (faller ellers stille tilbake til pin-ikonet), en `gallery`-oppføring uten `width`/`height`, eller `booking.enabled: true` med en tom `formspreeEndpoint` (se seksjon 6/11). Rent dev-/kvalitetsverktøy — ingen effekt på selve siden, og ikke et krav for at siden skal fungere. Kjører `npx ajv-cli@5.0.0` (pinnet versjon, ingen prosjekt-dependency); krever npm/nettverkstilgang (se seksjon 0). Exit code 0 = gyldig, 1 = faktiske schema-brudd (rett feltet scriptet peker på), 2 = kunne ikke validere i det hele tatt (npm/nettverk utilgjengelig — **ikke** en bekreftelse på at configen er gyldig, bare at valideringen ikke kunne kjøres).
+- [ ] Kjør `node --test` **før** deploy — 57 tester dekker dato-/blokkering-/prislogikken (`booking-logic.js`) og JSON-schemaet (`schema/property-config.schema.json`), og feiler raskt hvis en fremtidig endring bryter noe her. Ingen `npm install` nødvendig for kjernetestene (Node sin innebygde testrunner) — schema-testene i `tests/schema-validation.test.js` bruker samme `npx ajv-cli@5.0.0` som over.
 - [ ] Manuell smoke-test i nettleser (`node --test` dekker ikke DOM/UI — se over):
   - [ ] Alle 8 seksjoner viser riktig innhold på begge språk
   - [ ] Galleri + lightbox fungerer, riktig bildeantall

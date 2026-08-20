@@ -563,6 +563,7 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 - *(uncommitted, denne økten)* — **Fase 2, punkt 2: `NUMBER_LOCALES` flyttet fra `script.js` til `booking.numberLocales` i `site-data.js`.** `formatMoney()` leser nå config med et treleddet fallback-kjede (manglende objekt → manglende språknøkkel → hardkodet `DEFAULT_NUMBER_LOCALE = "en-US"`, med try/catch rundt selve `toLocaleString()`-kallet for en ugyldig locale-streng). Verifisert i nettleser: EN/TH prisvisning, booking price/request/success-sammendrag og fallback-scenarioene (manglende config, manglende språknøkkel, ugyldig locale-streng) — se "Fase 2" under for full detalj.
 - *(uncommitted, denne økten)* — **Fase 2, punkt 3: unit-tester for booking-/dato-/prislogikk.** Ny fil `booking-logic.js` (rene funksjoner flyttet ut av `script.js`, uendret oppførsel) + `tests/dates.test.js`, `tests/booking-rules.test.js`, `tests/price.test.js` (51 tester, `node --test`, alle grønne). To additive signaturendringer (`formatMoney`/`isRangeClear` får ett ekstra parameter) og fire nye navngitte parse-funksjoner trukket ut av `initBooking()`. Se "Fase 2" under for full detalj.
 - *(uncommitted, denne økten)* — **Fase 2.4: config cleanup / døde felt.** Kontrollert batch, ingen refaktorering utover selve funnene. `booking.formspreeEndpoint` (var hardkodet `FORMSPREE_ENDPOINT` i script.js), About-seksjonens bilde (nytt `aboutImage.src`/`aboutImage.alt`) og hero-bildets `alt`-tekst (nytt `heroImageAlt`) flyttet til `site-data.js`, koblet via `data-property-*`-mønsteret som allerede fantes for resten av innholdet. `seo.googleSiteVerification` lagt til i `seo`-blokken og bakt inn av `scripts/sync-seo.js` sammen med resten av SEO-blokken, i stedet for en frittstående hardkodet `<meta>`-tag. Hero preload-lenken og favicon-filnavnet ble **bevisst latt være** hardkodet (se "Bevisst hardkodet" under). `locationBody2` og `photosUrl` ble vurdert for sletting (begge uten HTML-konsument) men **bevisst beholdt** — de inneholder ekte, utfylt property-innhold, ikke placeholder-tekst, og en cleanup-batch skal ikke destruere reelt innhold; begge er nå kommentert i `site-data.js` som bevisst beholdt. Se "Fase 2.4" under for full detalj.
+- *(uncommitted, denne økten)* — **Fase 2.5: JSON Schema for `propertyConfig`.** Ny fil [schema/property-config.schema.json](../schema/property-config.schema.json) (JSON Schema Draft-07) og [scripts/validate-config.js](../scripts/validate-config.js), pluss 6 nye tester i [tests/schema-validation.test.js](../tests/schema-validation.test.js). Ingen runtime-kode rørt, ingen `package.json`/npm-avhengighet innført — validering kjøres via pinnet `npx ajv-cli@5.0.0` (Draft-07 er dets default), en ekte standardvalidator i stedet for en selvbygget schema-motor. Dagens `site-data.js` validert som gyldig; 5 negative cases (manglende required-felt, feil datatype, feil gallery-struktur, `minimumStay: 0`, `booking.enabled: true` + tom `formspreeEndpoint`) validert som forventet ugyldige. Se "Fase 2.5" under for full detalj.
 
 ### Fase 0 — Gjør produktet reelt
 
@@ -629,7 +630,7 @@ Commits siden audit-punktet (`23921bd`), eldst først:
    
    §06 sitt 🟡-funn ("Ingen automatiserte tester av kjernelogikken") og Fase 2 punkt 3 er dermed lukket.
 4. ❌ `getText()` bruker fortsatt `||`, `t()` bruker fortsatt `??` — inkonsekvensen består. `locationBody2` finnes fortsatt i `site-data.js` uten noe tilhørende `[data-property-location-body-2]`-element i index.html — feltet er fortsatt dødt, men er nå (Fase 2.4) eksplisitt vurdert og **bevisst beholdt** i stedet for slettet, se under.
-5. ❌ Ingen JSON Schema for `propertyConfig` funnet.
+5. ✅ **JSON Schema for `propertyConfig` lagt til** (denne økten) — [schema/property-config.schema.json](../schema/property-config.schema.json), validert mot dagens config. Se "Fase 2.5" under for full detalj.
 
 ### Nye funn denne økten (fra PROPERTY-CHECKLIST.md-arbeidet, ikke i original-audit-en)
 
@@ -673,6 +674,63 @@ Kontrollert cleanup-batch (denne økten, uncommitted), avgrenset til funnene ove
 
 §02 sine tre 🔴/⚠️-funn om `FORMSPREE_ENDPOINT`, About-bildet og `google-site-verification` (alle under "Nye funn denne økten" over) er dermed lukket. Hero preload og favicon-filnavn er ikke lukket, men nå eksplisitt dokumentert som bevisste unntak i stedet for uadresserte funn. `locationBody2`/`photosUrl` forblir dokumentert døde felt, nå med en eksplisitt "hvorfor ikke slettet"-begrunnelse i både denne filen og `site-data.js`.
 
+### Fase 2.5 — JSON Schema for `propertyConfig`
+
+Kartla hele `propertyConfig`-strukturen felt for felt direkte mot koden (`grep data-property- index.html`, `renderX()`-guards i script.js, `parseX()`-helperne og `GA4_ID_PATTERN`/`CLARITY_ID_PATTERN` i booking-logic.js/script.js, `scripts/sync-seo.js` sin bruk av `seo`-blokken) før noe schema ble skrevet — se prosessen i selve samtalen for full felt-for-felt-begrunnelse. Schemaet dokumenterer konfigurasjonen **slik den faktisk brukes i dag**, ikke en hypotetisk fremtidig form.
+
+**Schema-versjon: JSON Schema Draft-07.** Bredest verktøystøtte, og har `if/then` (brukt til formspree-regelen under) uten kompleksiteten til 2020-12s `$dynamicRef`/`unevaluatedProperties`, som ikke gir noen fordel her.
+
+**Fil:** [schema/property-config.schema.json](../schema/property-config.schema.json).
+
+**Required-felt** (14 topnivåfelt + 4 arrays): alt som alltid har et tilhørende `data-property-*`-element i `index.html` (verifisert ved grep, ikke antatt) — `name`, `location`, `heroTitle`, `heroDescription`, `heroDetails`, `heroImage`, `aboutTitle`, `aboutBody`, `aboutBody2`, `locationBody`, `mapAddress`, `mapUrl`, `mapEmbedUrl`, `phone`, `contactUrl`, `footerCopy` — pluss `facts`/`gallery`/`amenities`/`locationHighlights`, som hver har en egen `Array.isArray()`-guard med `reportConfigError()` i script.js.
+
+**Optional-felt:** `heroImageAlt`, `aboutImage`, `email`, `locationBody2`, `photosUrl`, samt hele `seo`-, `analytics`- og `booking`-blokken. `booking` er optional i sin helhet fordi `initBooking()` (script.js:539) skjuler hele booking-seksjonen og nav-lenken når `booking.enabled` er falsy eller blokken mangler — ingen krasj, et bevisst designvalg koden allerede støtter. Ingenting *inni* `booking` er required på egen hånd heller — `calculateBookingPrice()` og `parseMinimumStay`/`parseMaximumStay`/`parseBookingHorizonMonths`/`parseMaximumGuests` (booking-logic.js) har alle fallback for manglende felt.
+
+**`{en, th}`:** to varianter. `localizedText` (required-felt over): begge nøkler required, `minLength: 1` — fanger "glemte å oversette til thai". `localizedTextOptional` (seo-felt, alt-tekster, `locationBody2`): begge nøkler optional, tom streng lovlig — nødvendig fordi `site-data.js` i dag legitimt har `seo.title.th: ""` med en dokumentert runtime-fallback.
+
+**Nye, tidligere udokumenterte funn fra selve schema-arbeidet** (ikke i original-audit-en):
+- **`icon`-feltet i `facts[]`/`amenities[]`** har et fast sett gyldige nøkler (`iconSvg()` i script.js har nøyaktig 13: `bed, bath, users, pool, pin, wifi, snow, kitchen, car, laundry, tv, grill, table`). En feilstavet ikon-nøkkel krasjer ikke — den faller **stille** tilbake til `pin`-ikonet (`icons[name] || icons.pin`). Schemaet legger `enum` på dette feltet, som er den eneste måten denne bug-klassen fanges på i dag.
+- **`gallery[].width`/`height`** er required heltall > 0 i schemaet — brukes direkte som HTML `width`/`height`-attributter for CLS-forebygging (§09/Fase 1), og PROPERTY-CHECKLIST.md sier allerede eksplisitt at de må stemme med filenes faktiske pikseldimensjoner.
+- **`booking.minimumStay: 0`** er nå en schema-feil (`minimum: 1`), selv om `parseMinimumStay()` i praksis stille coacher `0` til `1` (dokumentert avvik, §04) — schemaet velger å flagge det tidligere i stedet for å kode inn den stille coersion-oppførselen.
+- **`booking.formspreeEndpoint`** har en `if/then`-regel: er `booking.enabled === true`, må `formspreeEndpoint` være satt til en ekte `http(s)://`-URL. Dette speiler det mest kritiske funnet i hele denne audit-runden (§02/"Nye funn denne økten": en glemt/tom endpoint sendte tidligere property #2 sine bestillinger til property #1 sin innboks). `submitBookingRequest()` har allerede en fail-loud runtime-guard for akkurat dette (Fase 2.4) — schemaet fanger det nå også *før* siden i det hele tatt lastes.
+
+**Dead/future fields — bevisst inkludert, ikke ekskludert:**
+- `locationBody2`, `photosUrl` — inkludert som optional felt med en `description` som forklarer at de er dokumentert døde (ingen HTML-konsument), men inneholder ekte innhold og ikke skal fjernes fra schemaet før noen faktisk sletter dem fra `site-data.js` (se Fase 2.4).
+- `booking.integrations.airbnb`/`bookingCom`, `booking.contact.phone`/`line` — inkludert som optional, løst typet, med `description` som viser til at de er bevisst forberedt for Fase 3, ikke glemte felt.
+
+**Validering — beslutningsprosess (research gjort før implementering, ikke antatt):**
+- Node har ingen innebygd JSON Schema-validator.
+- Ajv (biblioteket) bruker Draft-07 som default i hoved-exporten; `ajv-cli` har `--spec=draft7` som default. Bekreftet direkte mot `ajv-cli`s dokumentasjon (GitHub), ikke antatt fra hukommelse.
+- Bevisst **valgt bort**: en egen ~150-linjers hånd-bygget JSON-Schema-motor (ville vært vår egen delvise implementasjon av en standard — akkurat det vi ville unngå), og å innføre `package.json` + `ajv` som committed devDependency (repoet har i dag bevisst null npm-avhengigheter, fremhevet i §08 som en reell sikkerhetsfordel — å innføre det *kun* for schema-validering ga ikke nok tilbake).
+- **Valgt:** `npx --yes ajv-cli@5.0.0` (versjon pinnet for reproduserbarhet), kalt fra et lite Node-glue-script. Verifisert at npm-registryet faktisk er nåbart (`npm view ajv-cli version` → 5.0.0) før dette ble lagt til grunn.
+
+**Fil:** [scripts/validate-config.js](../scripts/validate-config.js) — laster `site-data.js` via samme `vm`-sandkasse-mønster som `scripts/sync-seo.js` allerede bruker (`window`-stub, ingen CommonJS-konvertering av `site-data.js`), dumper resultatet til en midlertidig JSON-fil i OS-temp (ikke i repoet), og kaller `npx --yes ajv-cli@5.0.0 validate -s schema/property-config.schema.json -d <tempfile>`. Støtter `--input <fil>` for å validere en annen JSON-fil (brukt av negative-testene).
+
+**Kjøres med:** `node scripts/validate-config.js`
+
+**Exit codes, bevisst tredelt** (etter eksplisitt krav om at scriptet aldri skal late som suksess hvis det ikke faktisk fikk validert noe):
+- `0` — gyldig, data matcher schemaet
+- `1` — ugyldig, ajv-cli fant faktiske schema-brudd
+- `2` — **kunne ikke validere i det hele tatt** (npm/npx mangler, ingen nettverkstilgang, schema-fil mangler, `site-data.js` feilet å laste, ajv-cli avsluttet med annen kode enn 0/1). Aldri behandlet som en pass — scriptet skriver eksplisitt "Schema validation NOT performed — this is not a pass." til stderr og returnerer 2, ikke 0.
+
+**Testet, alle bekreftet direkte (ikke antatt):**
+- `node scripts/validate-config.js` mot dagens `site-data.js` → **VALID**, exit 0.
+- `npx ajv-cli@5.0.0 compile -s schema/property-config.schema.json` → "schema ... is valid" — bekrefter schemaet er strukturelt gyldig Draft-07 uendret av databruk (alle `$ref`/`definitions` løser seg korrekt).
+- 6 nye tester i [tests/schema-validation.test.js](../tests/schema-validation.test.js), hver deep-kloner **den ekte** configen og endrer nøyaktig én ting (ikke en separat hånd-skrevet fixture som kunne feile av feil grunn):
+  - Positiv: dagens `site-data.js` uendret → exit 0.
+  - Negativ: `name` fjernet → exit 1 (missing required).
+  - Negativ: `gallery` satt til en streng → exit 1 (feil datatype).
+  - Negativ: gallery-element uten `width` → exit 1 (feil struktur).
+  - Negativ: `booking.minimumStay: 0` → exit 1.
+  - Negativ: `booking.enabled: true` + `booking.formspreeEndpoint: ""` → exit 1 (if/then-regelen).
+  - Alle 6 assertions sjekker eksplisitt at exit-koden er nøyaktig `0`/`1`, aldri `2` — en test ville feile tydelig, ikke stille bestå, hvis npm/nettverk var utilgjengelig under kjøring.
+- `node --test` (hele suiten): **57/57 grønne** (51 eksisterende + 6 nye), ingen regresjon.
+- Browser-smoke-test (fersk fane, ny `preview_start`-instans): ingen konsollfeil ved sideinnlasting. Full booking-flyt kjørt på nytt (22.–23. august 2026, 1 natt, 1 gjest) → "Villa available", riktig prissammendrag (10 000 THB × 1 natt → 10 000 THB), identisk med oppførsel før denne batchen. Ingen runtime-kode er rørt i det hele tatt i denne batchen, så dette bekrefter fravær av utilsiktet sideeffekt, ikke en ny funksjonstest.
+
+**Ikke gjort (bevisst, utenfor scope):** ingen `package.json` er lagt til, ingen `node_modules` committed, ingen endring i `script.js`/`booking-logic.js`/`index.html`/`site-data.js`. `getText()` sin `||` vs. `t()` sin `??`-inkonsekvens (§06, opprinnelig del av "Fase 2 punkt 4" sammen med `locationBody2`) er **ikke** rørt i denne batchen — det er en ren kodeendring uten sammenheng med schema-arbeidet, og forblir det eneste gjenstående punktet fra Fase 2 sin opprinnelige 5-punktsliste.
+
+§01 sitt 🟡-funn ("`site-data.js` har ingen skjema eller typer") og Fase 2 punkt 5 er dermed lukket.
+
 ### Fase 3 — Backend
 
 Ikke startet. Repoet inneholder fortsatt ingen server-/backend-kode — kun statiske filer (pluss en lokal `python -m http.server` for forhåndsvisning i `.claude/launch.json`). `blockedDates` er fortsatt en hånd-redigert liste i `site-data.js` uten reservasjons-lås.
@@ -703,7 +761,9 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
 
 ### Kort oppsummert
 
-**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`), config loading/error handling (`reportConfigError()` + array-guards + try/catch-sikkerhetsnett + async-riktig init-sekvens), §10 sitt touch-mål-funn (`guest-btn`/`cal-nav` opp til 44×44px reell treffflate via usynlig hitbox, `141e3da`) — dermed er hele Fase 1 fullført bortsett fra `srcset`/`sizes`, som er bevisst utsatt (se under), ikke gjenstående. **Fase 2, punkt 1** ([PROPERTY-CHECKLIST.md](../PROPERTY-CHECKLIST.md)), **punkt 2** (`NUMBER_LOCALES` → `booking.numberLocales` i config) og **punkt 3** (51 unit-tester for booking-/dato-/prislogikk, `node --test`) er ferdig, og **Fase 2.4** (config cleanup: `booking.formspreeEndpoint`, `aboutImage`, `heroImageAlt`, `seo.googleSiteVerification` flyttet til config; hero preload og favicon-filnavn bevisst latt hardkodet; `locationBody2`/`photosUrl` bevisst beholdt som dokumenterte døde felt) er også ferdig — alt denne økten, uncommitted. Se "Fase 2.4" og "Nye funn denne økten" over for detaljer.
+**Ferdig:** hele Fase 0 (inkl. Facebook-lenkene), honeypot + kontrast + lightbox-fokusfelle fra Fase 1, bildeperformance sin lazy-loading/dimensjons-del (`514b97c`), deler av §11 accessibility utover roadmapen, SEO-hygiene-batchen (`robots.txt` + `sitemap.xml`), config loading/error handling (`reportConfigError()` + array-guards + try/catch-sikkerhetsnett + async-riktig init-sekvens), §10 sitt touch-mål-funn (`guest-btn`/`cal-nav` opp til 44×44px reell treffflate via usynlig hitbox, `141e3da`) — dermed er hele Fase 1 fullført bortsett fra `srcset`/`sizes`, som er bevisst utsatt (se under), ikke gjenstående. **Fase 2, punkt 1** ([PROPERTY-CHECKLIST.md](../PROPERTY-CHECKLIST.md)), **punkt 2** (`NUMBER_LOCALES` → `booking.numberLocales` i config) og **punkt 3** (51 unit-tester for booking-/dato-/prislogikk, `node --test`) er ferdig, **Fase 2.4** (config cleanup: `booking.formspreeEndpoint`, `aboutImage`, `heroImageAlt`, `seo.googleSiteVerification` flyttet til config; hero preload og favicon-filnavn bevisst latt hardkodet; `locationBody2`/`photosUrl` bevisst beholdt som dokumenterte døde felt) er ferdig, og **Fase 2.5** (JSON Schema Draft-07 for `propertyConfig`: [schema/property-config.schema.json](../schema/property-config.schema.json), validert via pinnet `npx ajv-cli@5.0.0`, ingen ny npm-avhengighet, dagens config bekreftet gyldig, 5 negative cases bekreftet ugyldige, 57/57 tester grønne) er også ferdig — alt denne økten, uncommitted. Se "Fase 2.4"/"Fase 2.5" og "Nye funn denne økten" over for detaljer.
+
+**Fase 2 er dermed fullført bortsett fra én liten, isolert rest:** `getText()` sin `||` vs. `t()` sin `??`-inkonsekvens (§06) — en fem-minutters kodeendring uten sammenheng med schema- eller config-arbeidet, bevisst ikke rørt i noen av batchene denne økten siden ingen av dem hadde mandat til å endre runtime-koden. Se "Neste naturlige steg" under.
 
 **Bevisst utsatt** (ikke gjenstående arbeid, men vurderinger gjort med fullt kost/gevinst-grunnlag):
 
@@ -722,6 +782,7 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
   Ikke en glemt revisjon — en bevisst prioritering: kost (evigvarende manuell multiplikator per bilde per property) vurdert høyere enn gevinst (moderat, mobil-only, ikke-LCP, allerede delvis dempet av lazy loading) med kun én property i drift.
 
 **Neste naturlige steg** (i prioritert rekkefølge, følger roadmapens egen logikk):
-1. Resten av Fase 2 (punkt 4–5) — punkt 1 (sjekkliste), punkt 2 (`NUMBER_LOCALES`) og punkt 3 (unit-tester) er ferdig, og Fase 2.4 (config cleanup) er nå også ferdig. Gjenstående: `||`/`??`-inkonsekvensen i `getText()`/`t()` (fem minutters fiks, se §06), og et JSON Schema for `propertyConfig` (forberedelse til dashboard, ikke bygget ennå).
+1. Den siste resten av Fase 2: `||`/`??`-inkonsekvensen i `getText()`/`t()` (fem minutters fiks, se §06) — eneste gjenstående punkt fra Fase 2 sin opprinnelige 5-punktsliste. Punkt 1 (sjekkliste), 2 (`NUMBER_LOCALES`), 3 (unit-tester) og 5 (JSON Schema, Fase 2.5) er ferdig; `locationBody2`-delen av punkt 4 ble løst i Fase 2.4 (bevisst beholdt, ikke fjernet).
 2. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
 3. Når property #2 er reell, eller et enkelt lokalt resize-script er verdt å innføre: gjenåpne `srcset`/`sizes`-vurderingen over — grunnlaget (mål, breakpoints, filstørrelser) er allerede dokumentert her og trenger ikke gjøres på nytt.
+4. Når `site-data.js` klones for property #2: kjør `node scripts/validate-config.js` (Fase 2.5) før `node --test`/smoke-test i sjekklisten — det er nøyaktig den situasjonen schemaet ble bygget for.
