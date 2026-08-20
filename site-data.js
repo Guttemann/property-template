@@ -70,6 +70,30 @@ window.propertyConfig = {
         { value: "3 min", label: { en: "Convenience store", th: "ร้านสะดวกซื้อ" } },
         { value: "25 min", label: { en: "Hua Hin", th: "หัวหิน" } }
     ],
+    // SEO
+    // <title>/meta description are also applied at runtime by applySeoMeta()
+    // in script.js (so they stay correct even if scripts/sync-seo.js hasn't
+    // been run yet, and so the title follows language switches). Open Graph,
+    // Twitter Card and canonical tags are NOT set at runtime — link-preview
+    // bots (Facebook, LINE, WhatsApp, X, LinkedIn, ...) fetch raw HTML and
+    // don't execute JavaScript, so those are baked directly into index.html
+    // by `node scripts/sync-seo.js` instead. Run that script after editing
+    // this block and before deploying.
+    //
+    // All fields are optional — leave any of them out and a sensible
+    // fallback (name/location/heroDescription/heroImage above) is used
+    // instead. Leave siteUrl "" to skip canonical/og:url and keep
+    // og:image/twitter:image as relative paths.
+    seo: {
+        title: { en: "Celine Pool Villa Cha-Am — Cha-Am, Thailand", th: "" },
+        description: {
+            en: "Celine Pool Villa Cha-Am — a spacious private pool villa near Cha-Am Beach, Thailand.",
+            th: ""
+        },
+        ogImage: "", // fallback: heroImage above
+        siteUrl: "", // e.g. "https://celinepoolvilla.com" — set before going live to enable canonical + absolute og:image/twitter:image URLs
+        twitterHandle: "" // e.g. "@handle" — leave "" to omit twitter:site
+    },
     mapAddress: { en: "265/57-58 Chaolai Rd. Soi 3, Cha-Am, Phetchaburi 76120", th: "265/57-58 ถนนเจ้าลาย ซอย 3 ชะอำ เพชรบุรี 76120" },
     mapUrl: "https://www.google.com/maps/search/?api=1&query=Celine+Pool+Villa+Cha-Am",
     // Keyless Google Maps embed (no API key needed). Built from the same

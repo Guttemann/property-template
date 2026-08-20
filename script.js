@@ -128,9 +128,30 @@ function renderMapEmbed() {
     });
 }
 
+// <title> and the description meta tag are safe to set at runtime (Google
+// renders JS, and this keeps the title in sync with the active language).
+// Open Graph, Twitter Card and canonical tags are deliberately NOT touched
+// here — those are read by link-preview bots that fetch raw HTML without
+// running JavaScript, so they're baked into index.html by
+// scripts/sync-seo.js instead. See the seo block in site-data.js.
+function applySeoMeta() {
+    const config = window.propertyConfig;
+    if (!config) return;
+
+    const seo = config.seo || {};
+
+    document.title = getText(seo.title) || `${getText(config.name)} — ${getText(config.location)}`;
+
+    const description = getText(seo.description) || getText(config.heroDescription);
+    const descriptionTag = document.querySelector('meta[name="description"]');
+    if (descriptionTag && description) descriptionTag.setAttribute("content", description);
+}
+
 function renderStaticContent() {
     const config = window.propertyConfig;
     if (!config) return;
+
+    applySeoMeta();
 
     document.querySelectorAll("[data-property-name]").forEach(el => el.textContent = getText(config.name));
     document.querySelectorAll("[data-property-location]").forEach(el => el.textContent = getText(config.location));
