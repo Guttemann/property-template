@@ -1,5 +1,7 @@
 const translations = {
     en: {
+        skipToContent: "Skip to main content",
+
         navOverview: "Overview",
         navAbout: "About",
         navFacts: "Facts",
@@ -113,6 +115,8 @@ const translations = {
         calendarWeekdaysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
     },
     th: {
+        skipToContent: "ข้ามไปยังเนื้อหาหลัก",
+
         navOverview: "ภาพรวม",
         navAbout: "เกี่ยวกับ",
         navFacts: "ข้อมูล",

@@ -196,7 +196,9 @@ function setLanguage(language) {
     });
 
     languageButtons.forEach(button => {
-        button.classList.toggle("active", button.dataset.lang === language);
+        const isActive = button.dataset.lang === language;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
     });
 
     safeStorageSet("property-language", language);
@@ -208,12 +210,18 @@ window.addEventListener("scroll", () => {
     navbar.classList.toggle("scrolled", window.scrollY > 80);
 });
 
+function setMenuOpen(isOpen) {
+    navLinks.classList.toggle("open", isOpen);
+    menuToggle.setAttribute("aria-expanded", String(isOpen));
+    menuToggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+}
+
 menuToggle.addEventListener("click", () => {
-    navLinks.classList.toggle("open");
+    setMenuOpen(!navLinks.classList.contains("open"));
 });
 
 document.querySelectorAll(".nav-links a").forEach(link => {
-    link.addEventListener("click", () => navLinks.classList.remove("open"));
+    link.addEventListener("click", () => setMenuOpen(false));
 });
 
 languageButtons.forEach(button => {
@@ -231,12 +239,37 @@ observer = new IntersectionObserver((entries) => {
 }, { threshold: 0.15 });
 
 // SMOOTH ANCHOR SCROLL
+// scrollIntoView({behavior: "smooth"}) ignores the CSS `scroll-behavior`
+// media query below, so it's picked per-call from prefers-reduced-motion.
+function smoothScrollBehavior() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
+// Anchor navigation only scrolls by default — keyboard/screen-reader focus
+// stays on the clicked link, so the next Tab press (or the AT reading
+// position) doesn't follow the jump. Move focus to the target instead. Most
+// section targets aren't natively focusable, so a temporary tabindex="-1" is
+// added and removed on blur; targets that already carry tabindex (like
+// #main-content for the skip link) keep theirs.
+function focusTarget(target) {
+    const hadTabIndex = target.hasAttribute("tabindex");
+    if (!hadTabIndex) target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+    if (!hadTabIndex) {
+        target.addEventListener("blur", function handler() {
+            target.removeAttribute("tabindex");
+            target.removeEventListener("blur", handler);
+        }, { once: true });
+    }
+}
+
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener("click", function (event) {
         const target = document.querySelector(this.getAttribute("href"));
         if (!target) return;
         event.preventDefault();
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        target.scrollIntoView({ behavior: smoothScrollBehavior(), block: "start" });
+        focusTarget(target);
     });
 });
 
@@ -731,7 +764,8 @@ function renderCalendar() {
         if (isCheckOut) classes.push("is-checkout");
         if (isInRange) classes.push("is-in-range");
 
-        cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" ${isDisabled ? "disabled" : ""} aria-label="${iso}">${day}</button>`;
+        const stateAttr = isDisabled ? "disabled" : `aria-pressed="${isCheckIn || isCheckOut}"`;
+        cells += `<button type="button" class="${classes.join(" ")}" data-date="${iso}" ${stateAttr} aria-label="${iso}">${day}</button>`;
     }
 
     // Only cap forward navigation while starting a fresh check-in — once the
@@ -757,6 +791,16 @@ function renderCalendar() {
     container.querySelectorAll(".cal-day:not(.is-empty):not(.is-disabled)").forEach(button => {
         button.addEventListener("click", () => handleDayClick(button.dataset.date));
     });
+
+    // Announce the visible month to screen readers. This lives in a
+    // dedicated live region that's a sibling of #bookingCalendar, not part
+    // of the innerHTML replaced above — a region re-created from scratch on
+    // every render can't be reliably picked up by assistive tech, but a
+    // stable node whose text changes can. Setting the same text again (e.g.
+    // after picking a day, which re-renders the same month) is a no-op
+    // mutation, so it only actually announces when the month changes.
+    const monthAnnouncer = document.getElementById("bookingCalendarLive");
+    if (monthAnnouncer) monthAnnouncer.textContent = `${months[month]} ${year}`;
 }
 
 function shiftMonth(delta) {
@@ -889,7 +933,7 @@ function showResultAvailable(nights) {
     document.getElementById("bookingUnavailableState").hidden = true;
 
     renderAvailableSummary();
-    document.getElementById("bookingResult").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.getElementById("bookingResult").scrollIntoView({ behavior: smoothScrollBehavior(), block: "nearest" });
 }
 
 function showResultUnavailable() {
@@ -898,7 +942,7 @@ function showResultUnavailable() {
     document.getElementById("bookingResult").hidden = false;
     document.getElementById("bookingAvailableState").hidden = true;
     document.getElementById("bookingUnavailableState").hidden = false;
-    document.getElementById("bookingResult").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.getElementById("bookingResult").scrollIntoView({ behavior: smoothScrollBehavior(), block: "nearest" });
 }
 
 // --- Price calculation ---------------------------------------------------
@@ -994,7 +1038,7 @@ function showBookingRequestForm() {
     document.getElementById("bookingRequestSection").hidden = false;
     document.getElementById("bookingResult").hidden = true;
     renderRequestSummary();
-    document.getElementById("bookingRequestSection").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.getElementById("bookingRequestSection").scrollIntoView({ behavior: smoothScrollBehavior(), block: "nearest" });
 }
 
 function showResultFromRequest() {
@@ -1162,7 +1206,7 @@ function showBookingSuccess() {
     renderSuccessSummary();
 
     document.getElementById("bookingSuccess").hidden = false;
-    document.getElementById("bookingSuccess").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.getElementById("bookingSuccess").scrollIntoView({ behavior: smoothScrollBehavior(), block: "nearest" });
 }
 
 function renderSuccessSummary() {
@@ -1194,7 +1238,7 @@ function handleBackToProperty() {
     updateDateDisplays();
     renderCalendar();
 
-    document.getElementById("overview").scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("overview").scrollIntoView({ behavior: smoothScrollBehavior(), block: "start" });
 }
 
 // --- Re-translate dynamic booking content on language switch --------------

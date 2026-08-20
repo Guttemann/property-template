@@ -43,10 +43,12 @@
 
 <body>
 
+    <a href="#main-content" class="skip-link" data-i18n="skipToContent">Skip to main content</a>
+
     <nav class="navbar">
         <a href="#overview" class="nav-logo" data-property-name>Celine Pool Villa Cha Am</a>
 
-        <div class="nav-links">
+        <div class="nav-links" id="navLinks">
             <a href="#overview" data-i18n="navOverview">Overview</a>
             <a href="#about" data-i18n="navAbout">About</a>
             <a href="#facts" data-i18n="navFacts">Facts</a>
@@ -58,12 +60,12 @@
         </div>
 
         <div class="language-switch" aria-label="Language switch">
-            <button class="language-btn active" data-lang="en">EN</button>
+            <button class="language-btn active" data-lang="en" aria-pressed="true">EN</button>
             <span>/</span>
-            <button class="language-btn" data-lang="th">TH</button>
+            <button class="language-btn" data-lang="th" aria-pressed="false">TH</button>
         </div>
 
-        <button class="menu-toggle" aria-label="Open menu">
+        <button class="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
             <span></span>
             <span></span>
         </button>
@@ -102,7 +104,7 @@
         </div>
     </header>
 
-    <main>
+    <main id="main-content" tabindex="-1">
 
         <section class="section intro about-section" id="about">
             <div class="section-head reveal">
@@ -222,6 +224,7 @@
                 <!-- STEP 1: calendar + guests + check availability -->
                 <div class="booking-widget" id="bookingWidget">
                     <div class="booking-calendar" id="bookingCalendar" aria-label="Availability calendar"></div>
+                    <p class="sr-only" id="bookingCalendarLive" aria-live="polite" aria-atomic="true"></p>
 
                     <div class="booking-sidebar">
                         <div class="booking-dates">
