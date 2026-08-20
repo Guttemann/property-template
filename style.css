@@ -5,7 +5,7 @@
     --green-light: #31594d;
     --dark: #102923;
     --text: #263a34;
-    --muted: #718078;
+    --muted: #5c6b63;
     --white: #fffdf8;
     --line: rgba(23, 59, 50, 0.12);
 
@@ -155,7 +155,7 @@ h2 {
     background: none;
     color: inherit;
     cursor: pointer;
-    opacity: 0.45;
+    opacity: 0.72;
     transition: opacity 0.25s ease;
 }
 
@@ -166,6 +166,10 @@ h2 {
 
 .menu-toggle {
     display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
     border: 0;
     background: none;
     cursor: pointer;
@@ -226,6 +230,10 @@ h2 {
     flex-direction: column;
     justify-content: flex-end;
     max-width: 900px;
+}
+
+.hero-content .eyebrow {
+    color: rgba(255, 255, 255, 0.86);
 }
 
 .hero-description {
@@ -1260,7 +1268,8 @@ h2 {
     }
 
     .menu-toggle {
-        display: block;
+        display: flex;
+        flex-direction: column;
         margin-left: 16px;
     }
 
@@ -1274,13 +1283,16 @@ h2 {
         justify-content: center;
         gap: 26px;
         opacity: 0;
+        visibility: hidden;
         pointer-events: none;
-        transition: opacity 0.25s ease;
+        transition: opacity 0.25s ease, visibility 0s linear 0.25s;
     }
 
     .nav-links.open {
         opacity: 1;
+        visibility: visible;
         pointer-events: auto;
+        transition: opacity 0.25s ease, visibility 0s linear 0s;
     }
 
     .nav-links a {

@@ -23,6 +23,7 @@ function safeStorageSet(key, value) {
 
 let currentLanguage = safeStorageGet("property-language") || "en";
 let lightboxIndex = 0;
+let lightboxTriggerElement = null;
 
 const navbar = document.querySelector(".navbar");
 const menuToggle = document.querySelector(".menu-toggle");
@@ -94,7 +95,10 @@ function renderGallery() {
     `).join("");
 
     galleryGrid.querySelectorAll(".gallery-item").forEach(button => {
-        button.addEventListener("click", () => openLightbox(Number(button.dataset.galleryIndex)));
+        button.addEventListener("click", () => {
+            lightboxTriggerElement = button;
+            openLightbox(Number(button.dataset.galleryIndex));
+        });
     });
 }
 
@@ -239,6 +243,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 // LIGHTBOX
 function openLightbox(index) {
     const config = window.propertyConfig;
+    const wasOpen = lightbox.classList.contains("is-open");
     lightboxIndex = index;
     const image = config.gallery[lightboxIndex];
     lightboxImage.src = image.src;
@@ -247,12 +252,17 @@ function openLightbox(index) {
     lightbox.classList.add("is-open");
     lightbox.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
+    if (!wasOpen) lightboxCloseBtn.focus();
 }
 
 function closeLightbox() {
     lightbox.classList.remove("is-open");
     lightbox.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
+    if (lightboxTriggerElement) {
+        lightboxTriggerElement.focus();
+        lightboxTriggerElement = null;
+    }
 }
 
 function stepLightbox(direction) {
@@ -261,9 +271,13 @@ function stepLightbox(direction) {
     openLightbox(lightboxIndex);
 }
 
-document.querySelector(".lightbox-close").addEventListener("click", closeLightbox);
-document.querySelector(".lightbox-prev").addEventListener("click", () => stepLightbox(-1));
-document.querySelector(".lightbox-next").addEventListener("click", () => stepLightbox(1));
+const lightboxCloseBtn = document.querySelector(".lightbox-close");
+const lightboxPrevBtn = document.querySelector(".lightbox-prev");
+const lightboxNextBtn = document.querySelector(".lightbox-next");
+
+lightboxCloseBtn.addEventListener("click", closeLightbox);
+lightboxPrevBtn.addEventListener("click", () => stepLightbox(-1));
+lightboxNextBtn.addEventListener("click", () => stepLightbox(1));
 
 lightbox.addEventListener("click", (event) => {
     if (event.target === lightbox) closeLightbox();
@@ -274,6 +288,18 @@ window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeLightbox();
     if (event.key === "ArrowLeft") stepLightbox(-1);
     if (event.key === "ArrowRight") stepLightbox(1);
+    if (event.key === "Tab") {
+        const focusables = [lightboxCloseBtn, lightboxPrevBtn, lightboxNextBtn];
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
 });
 
 // =========================
