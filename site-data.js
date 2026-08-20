@@ -140,6 +140,15 @@ window.propertyConfig = {
         cleaningFee: 0,
         serviceFee: 0,
 
+        // Locale used for number formatting (grouping/decimal separators)
+        // in price displays, keyed by the site's own language toggle — not
+        // the visitor's browser/OS locale. One entry per language the site
+        // supports (see translations.js). formatMoney() in script.js falls
+        // back to "en-US" if this is missing, missing a language's entry,
+        // or contains an invalid locale string, so a broken/incomplete
+        // value here never breaks price display.
+        numberLocales: { en: "en-US", th: "th-TH" },
+
         // --- Stay rules ---------------------------------------------------
         minimumStay: 1,
         maximumStay: null, // null = no maximum

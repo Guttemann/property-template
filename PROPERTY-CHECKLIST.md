@@ -118,7 +118,7 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 | `maximumGuests` | `site-data.js:157` | Config | Hold denne i sync med `facts`-arrayets "guests"-verdi manuelt — ingen automatisk kobling mellom dem |
 | `blockedDates[]` | `site-data.js:164–167` | Config | Hånd-redigert liste, ingen reservasjons-lås (kjent, akseptert driftsrisiko — se full-audit.md §03) |
 | **`FORMSPREE_ENDPOINT`** | `script.js:1128` | **🔴 Kritisk — kode, ikke config** | Hardkodet Formspree-skjema-URL (`https://formspree.io/f/mbgrqqlg`) spesifikt for Property #1. **Glemmer du å bytte denne, går alle bestillingsforespørsler fra Property #2 til Property #1 sin Formspree-innboks.** Opprett et nytt Formspree-skjema for den nye propertyen og lim inn den nye URL-en her før lansering. Dette er ikke nevnt eksplisitt i full-audit.md §02 og er den mest kritiske "glem-dette-og-ingenting-funker"-fellen i hele malen. |
-| `NUMBER_LOCALES` | `script.js:1025` | **⚠️ Kode, ikke config** | `{ en: "en-US", th: "th-TH" }` — kun brukt til tallformatering (valuta-visning). Fungerer i dag fordi begge properties bruker samme to locale-mappinger. En property med annen valuta/tredje språk krever kodeendring her. |
+| `booking.numberLocales` | `site-data.js` (`booking`-blokken) | Config | `{ en: "en-US", th: "th-TH" }` — kun brukt til tallformatering (gruppe-/desimalskilletegn i prisvisning), ikke valutasymbolet (det er `currency` over). Legger den nye propertyen til et tredje språk (utenfor scope for en vanlig klone, se seksjon 9), trenger den én ny nøkkel her — ellers ingen endring nødvendig. Manglende/ugyldig verdi faller trygt tilbake til `en-US`. |
 | `integrations.airbnb` / `integrations.bookingCom` | `site-data.js:173–176` | Ubrukte placeholders | Ingen kode leser disse ennå — forberedt plass for Fase 3 (backend) |
 
 **Test (obligatorisk, ikke valgfritt):** etter kloning, **send en faktisk test-bestillingsforespørsel** gjennom hele flyten (velg datoer → Check Availability → Request to Book → fyll skjema → send) og verifiser at den faktisk lander i **den nye propertyens** Formspree-innboks/e-post — ikke i den gamle. Dette er den eneste måten å fange en glemt `FORMSPREE_ENDPOINT`-oppdatering på.
@@ -173,9 +173,10 @@ Malen støtter i dag **nøyaktig to språk: `en` og `th`** — hardkodet flere s
 | Språkbytte-knapper (`index.html:65–67`, kun EN/TH) | **⚠️ Kode** |
 | Hver tekstverdi i `site-data.js` forventes å være `{ en: "...", th: "..." }` | **⚠️ Kode-struktur** |
 | `translations.js` sine to toppnivå-nøkler `en`/`th` | **⚠️ Kode** |
-| `NUMBER_LOCALES` i `script.js:1025` (kun `en-US`/`th-TH`) | **⚠️ Kode** |
 
-Å legge til et tredje språk (eller kjøre med kun ett) er **ikke** noe du løser i `site-data.js` alene — det krever endringer i alle fire punktene over.
+Å legge til et tredje språk (eller kjøre med kun ett) er **ikke** noe du løser i `site-data.js` alene — det krever endringer i alle tre punktene over.
+
+`booking.numberLocales` (se seksjon 6) er **ikke lenger** en av disse — den er nå config, så et tredje språk trenger kun en ny nøkkel der, ikke en `script.js`-endring. Manglende/tomt for et nytt språk faller uansett trygt tilbake til `en-US`-tallformatering i stedet for å knekke prisvisningen.
 
 **For en property som fortsatt bruker begge språkene (vanligste tilfelle):** sjekk manuelt at **alle** tekstfelt i `site-data.js` faktisk har utfylt både `en` og `th` — dette verifiseres **ikke** automatisk for property-innhold. (`translations.js` sin UI-tekst *er* programmatisk verifisert til 85/85 nøkler i begge språk — det er noe annet enn property-teksten.)
 
@@ -212,10 +213,8 @@ Samlet oversikt — alt herfra kan **ikke** løses ved kun å redigere `site-dat
 6. **Favicon-filnavnet** `celine-pool-villa-favicon.webp` (`index.html:31`) — propertyens navn er bakt inn i filnavnet
 7. **`robots.txt`** — helt statisk, ikke generert, `Sitemap:`-linjen må legges til for hånd
 8. **Fargepalett og fonter** (`style.css:1–14`, `index.html:39–41`) — den visuelle identiteten, forventet å være kode
-9. **`NUMBER_LOCALES`** (`script.js:1025`) — currency/locale-formatering, kun relevant hvis ny property bruker annen valuta enn THB/samme locale-par
-10. **Antall/valg av språk** (`index.html:65–67`, `translations.js`, `NUMBER_LOCALES`) — se seksjon 9, kun relevant hvis språk-settet skal endres
-11. **`node scripts/sync-seo.js`** må kjøres manuelt hver gang `seo`-blokken endres — ikke automatisk, ikke en del av deploy
-12. **Locale/valuta-mapping** — se punkt 9, samme sak som `NUMBER_LOCALES`
+9. **Antall/valg av språk** (`index.html:65–67`, `translations.js`) — se seksjon 9, kun relevant hvis språk-settet skal endres. `booking.numberLocales` er **ikke** lenger en del av dette punktet — det er config siden denne økten, se seksjon 6/9.
+10. **`node scripts/sync-seo.js`** må kjøres manuelt hver gang `seo`-blokken endres — ikke automatisk, ikke en del av deploy
 
 **Dødte config-felt** (finnes i `site-data.js`, men ingen kode/HTML konsumerer dem — trygt å ignorere, men forvirrende hvis noen prøver å bruke dem og lurer på hvorfor ingenting skjer):
 - `locationBody2` (`site-data.js:61–64`)

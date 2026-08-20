@@ -1018,15 +1018,30 @@ function calculateBookingPrice(nights) {
     return { currency, pricePerNight, nights, roomTotal, cleaningFee, serviceFee, total };
 }
 
+// Fallback locale for number formatting when booking.numberLocales in
+// site-data.js is missing, missing an entry for the current language, or
+// contains a locale string toLocaleString() rejects. Keeps price display
+// from ever breaking over a config typo.
+const DEFAULT_NUMBER_LOCALE = "en-US";
+
 // Locale used for number formatting, keyed by the site's own language
 // toggle — not the visitor's browser/OS locale. That keeps grouping and
 // decimal separators identical for every guest regardless of their device
-// settings, and still follows the EN/TH choice made on the page.
-const NUMBER_LOCALES = { en: "en-US", th: "th-TH" };
-
+// settings, and still follows the EN/TH choice made on the page. Read from
+// site-data.js (booking.numberLocales) so a property with a different
+// language/locale pairing doesn't require a script.js change.
 function formatMoney(amount, currency) {
-    const locale = NUMBER_LOCALES[currentLanguage] || NUMBER_LOCALES.en;
-    const formatted = Number(amount).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const numberLocales = (window.propertyConfig && window.propertyConfig.booking && window.propertyConfig.booking.numberLocales) || {};
+    const locale = numberLocales[currentLanguage] || numberLocales.en || DEFAULT_NUMBER_LOCALE;
+
+    let formatted;
+    try {
+        formatted = Number(amount).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    } catch (error) {
+        console.warn(`Invalid booking.numberLocales value (${JSON.stringify(locale)}) for language "${currentLanguage}"; falling back to "${DEFAULT_NUMBER_LOCALE}".`, error);
+        formatted = Number(amount).toLocaleString(DEFAULT_NUMBER_LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
     return `${formatted}${currency ? " " + currency : ""}`;
 }
 
