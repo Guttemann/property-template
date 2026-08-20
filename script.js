@@ -382,7 +382,22 @@ async function initBooking() {
     }
 
     bookingState.minimumStay = Math.max(1, Number(config.booking.minimumStay) || 1);
-    bookingState.maximumStay = config.booking.maximumStay != null ? Math.max(bookingState.minimumStay, Number(config.booking.maximumStay) || 0) : null;
+
+    const rawMaximumStay = config.booking.maximumStay;
+    if (rawMaximumStay == null) {
+        bookingState.maximumStay = null;
+    } else {
+        const parsedMaximumStay = Number(rawMaximumStay);
+        if (!Number.isFinite(parsedMaximumStay) || parsedMaximumStay < bookingState.minimumStay) {
+            // Fails open to "no maximum" instead of clamping to minimumStay, which would
+            // silently reject nearly every booking under a typo'd config.
+            console.warn(`Invalid booking.maximumStay (${JSON.stringify(rawMaximumStay)}); treating as no maximum.`);
+            bookingState.maximumStay = null;
+        } else {
+            bookingState.maximumStay = parsedMaximumStay;
+        }
+    }
+
     bookingState.maxGuests = Math.max(1, Number(config.booking.maximumGuests) || 1);
     bookingState.guests = 1;
     bookingState.viewMonth = todayStart();
