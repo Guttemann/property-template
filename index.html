@@ -310,6 +310,14 @@
                             <textarea id="reqMessage" name="message" rows="3"></textarea>
                         </div>
 
+                        <!-- Honeypot: hidden from real visitors, catnip for bots. Any value here
+                             makes submitBookingRequest() silently drop the request. -->
+                        <div class="form-row" aria-hidden="true"
+                            style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;">
+                            <label for="reqCompany">Company</label>
+                            <input type="text" id="reqCompany" name="_gotcha" tabindex="-1" autocomplete="off">
+                        </div>
+
                         <p class="booking-disclaimer" data-i18n="bookingDisclaimer">
                             Your booking is a request and will be confirmed by the property owner.
                         </p>

@@ -902,14 +902,71 @@ function isValidEmail(email) {
 }
 
 // --- Form submission -------------------------------------------------
-// Demo submission only, so v1 doesn't need a backend. Replace the body of
-// this function with a real integration when ready — e.g. a Formspree
-// endpoint, an EmailJS send call, or a Supabase/own-API request — and
-// return a rejected Promise on failure. Nothing else needs to change,
-// since every caller already awaits this function.
+// v1 integration: submits the booking request to Formspree as JSON.
+// Throws on failure so handleBookingRequestSubmit's catch block shows the
+// generic form error — nothing else needs to change there.
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mbgrqqlg";
+
 async function submitBookingRequest(payload) {
-    console.info("Booking request (demo submission):", payload);
-    return new Promise(resolve => setTimeout(resolve, 600));
+    // Honeypot tripped — a bot filled in a field real guests never see.
+    // Pretend success without sending anything, so it learns nothing.
+    if (payload.honeypot) {
+        return Promise.resolve();
+    }
+
+    const contactEmail = (window.propertyConfig && window.propertyConfig.booking &&
+        window.propertyConfig.booking.contact && window.propertyConfig.booking.contact.email) || "";
+
+    const body = {
+        name: payload.name,
+        email: payload.email,
+        phone: payload.phone,
+        message: payload.message,
+        checkIn: payload.checkIn,
+        checkOut: payload.checkOut,
+        nights: payload.nights,
+        guests: payload.guests,
+        property: payload.property,
+        estimatedTotal: payload.price && payload.price.pricePerNight > 0
+            ? formatMoney(payload.price.total, payload.price.currency)
+            : "",
+        _replyto: payload.email,
+        _subject: `Booking request: ${payload.property} — ${payload.checkIn} to ${payload.checkOut}`,
+        _gotcha: payload.honeypot
+    };
+    // CC the property's own contact address (site-data.js) so the request
+    // still reaches the owner even if it differs from the Formspree
+    // account's registered notification address.
+    if (contactEmail) {
+        body._cc = contactEmail;
+    }
+
+    let response;
+    try {
+        response = await fetch(FORMSPREE_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
+    } catch (networkError) {
+        throw new Error("Network error while sending booking request.");
+    }
+
+    if (!response.ok) {
+        let detail = "";
+        try {
+            const data = await response.json();
+            if (data && Array.isArray(data.errors)) {
+                detail = data.errors.map(e => e.message).join(", ");
+            }
+        } catch (parseError) {
+            // Response body wasn't JSON — fall back to the status text below.
+        }
+        throw new Error(detail || `Formspree request failed with status ${response.status}`);
+    }
 }
 
 async function handleBookingRequestSubmit(event) {
@@ -919,12 +976,14 @@ async function handleBookingRequestSubmit(event) {
     const emailEl = document.getElementById("reqEmail");
     const phoneEl = document.getElementById("reqPhone");
     const messageEl = document.getElementById("reqMessage");
+    const honeypotEl = document.getElementById("reqCompany");
     const errorEl = document.getElementById("bookingFormError");
 
     const name = nameEl.value.trim();
     const email = emailEl.value.trim();
     const phone = phoneEl.value.trim();
     const message = messageEl.value.trim();
+    const honeypot = honeypotEl ? honeypotEl.value.trim() : "";
 
     errorEl.hidden = true;
     errorEl.textContent = "";
@@ -953,7 +1012,8 @@ async function handleBookingRequestSubmit(event) {
         nights,
         guests: bookingState.guests,
         price: calculateBookingPrice(nights),
-        property: getText(window.propertyConfig && window.propertyConfig.name)
+        property: getText(window.propertyConfig && window.propertyConfig.name),
+        honeypot
     };
 
     const submitBtn = document.getElementById("sendRequestBtn");
