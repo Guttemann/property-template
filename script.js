@@ -300,20 +300,75 @@ async function getBlockedDates() {
 // a check-in for the next guest, and renderCalendar() separately allows a
 // blocked date to still be picked as a check-out (see isCheckoutCandidate
 // there) — together that's what makes back-to-back turnover days work.
+//
+// site-data.js is hand-edited per property, so entries here can be
+// malformed in ways nothing else catches: a typo'd date, a reversed range,
+// the wrong shape entirely. A malformed entry that silently disappears is
+// dangerous in the "open" direction — the calendar shows the night as
+// available and a guest can double-book it — so every entry is validated
+// and anything that doesn't check out is dropped with a console.warn
+// (never guessed at, never left to throw).
+const BLOCKED_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_BLOCKED_RANGE_NIGHTS = 730; // ~2 years; catches a typo'd year turning one range into a huge/frozen block
+
+// Rejects anything that isn't a real calendar date in "YYYY-MM-DD" form —
+// including strings like "2026-02-30" that the regex lets through but that
+// the Date constructor would otherwise silently normalize to March 2.
+function isValidISODateString(value) {
+    if (typeof value !== "string" || !BLOCKED_DATE_RE.test(value)) return false;
+    return formatISODate(parseISODate(value)) === value;
+}
+
 function expandBlockedDates(rawList) {
     const dates = new Set();
-    (rawList || []).forEach(entry => {
+
+    if (!Array.isArray(rawList)) {
+        if (rawList != null) {
+            console.warn(`Invalid booking.blockedDates (${JSON.stringify(rawList)}); expected an array. Treating as no blocked dates.`);
+        }
+        return dates;
+    }
+
+    rawList.forEach(entry => {
         if (typeof entry === "string") {
+            if (!isValidISODateString(entry)) {
+                console.warn(`Invalid blocked date ${JSON.stringify(entry)}; expected a real calendar date as "YYYY-MM-DD". Skipping.`);
+                return;
+            }
             dates.add(entry);
-        } else if (entry && entry.from && entry.to) {
-            let cursor = parseISODate(entry.from);
+            return;
+        }
+
+        if (entry && typeof entry === "object" && ("from" in entry || "to" in entry)) {
+            if (!isValidISODateString(entry.from) || !isValidISODateString(entry.to)) {
+                console.warn(`Invalid blocked date range ${JSON.stringify(entry)}; "from" and "to" must both be real calendar dates as "YYYY-MM-DD". Skipping.`);
+                return;
+            }
+
+            const start = parseISODate(entry.from);
             const end = parseISODate(entry.to);
+            if (start > end) {
+                console.warn(`Invalid blocked date range ${JSON.stringify(entry)}; "from" is after "to". Skipping rather than guessing the intended order.`);
+                return;
+            }
+
+            const nights = Math.round((end - start) / 86400000) + 1;
+            if (nights > MAX_BLOCKED_RANGE_NIGHTS) {
+                console.warn(`Blocked date range ${JSON.stringify(entry)} spans ${nights} nights, over the ${MAX_BLOCKED_RANGE_NIGHTS}-night limit (check for a typo'd year). Skipping.`);
+                return;
+            }
+
+            let cursor = start;
             while (cursor <= end) {
                 dates.add(formatISODate(cursor));
                 cursor = addDays(cursor, 1);
             }
+            return;
         }
+
+        console.warn(`Invalid blocked date entry ${JSON.stringify(entry)}; expected a "YYYY-MM-DD" string or a { from, to } object. Skipping.`);
     });
+
     return dates;
 }
 
