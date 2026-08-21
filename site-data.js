@@ -147,7 +147,7 @@ window.propertyConfig = {
     // owner doesn't want tracking). An invalid (non-empty, wrong-format)
     // value is skipped with a console.warn rather than sent as-is.
     analytics: {
-        ga4MeasurementId: "G-CSNWFHLD8T", // GA4 "Measurement ID", format "G-XXXXXXXXXX"
+        ga4MeasurementId: "G-CSWNFHLD8T", // GA4 "Measurement ID", format "G-XXXXXXXXXX"
         clarityProjectId: "y120opf0wr"    // Microsoft Clarity project ID
     },
 
