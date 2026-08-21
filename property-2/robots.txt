@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Add "Sitemap: https://yourdomain.com/sitemap.xml" here once this property
+# has a real domain (see propertyConfig.seo.siteUrl in site-data.js).
+
+# NOTE (Property #2 template-reuse test): this file lives inside a monorepo
+# test folder (property-2/) purely to prove that per-property static assets
+# copy cleanly. It does NOT imply property-1 and property-2 share a
+# production domain -- each real property is expected to deploy to its own
+# separate domain/repo, each with its own robots.txt.
