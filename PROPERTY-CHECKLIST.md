@@ -75,6 +75,8 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 
 **Liten observasjon (ikke en action item):** i det lokale repoet heter hero-filen `Hero.webp` med stor H på disk, men `git ls-files` viser at Git faktisk sporer den som `hero.webp` (liten h) — det matcher koden. Dette er en kosmetisk Windows-artefakt (case-insensitivt filsystem), ikke en reell feil, men vær obs på filnavn-casing generelt når du legger inn nye bilder på Windows, siden et ekte case-mismatch *ville* brutt siden på en case-sensitiv server.
 
+**⚠️ `node scripts/validate-config.js` sjekker ikke at bildefilene faktisk finnes (funn fra Property #2-valideringsøkten, 2026-08-21).** Schemaet krever kun at `heroImage`/`gallery[].src`/`aboutImage.src` er ikke-tomme strenger og at `gallery[].width`/`height` er positive heltall — en config som peker på en fil som ikke er lagt inn ennå, eller på feil `width`/`height` for den faktiske filen, validerer likevel som `VALID`. Én grønn schema-kjøring er altså **ikke** bevis for at bildene faktisk er på plass — det fanges kun av den manuelle smoke-testen under (synlig ødelagt bilde/feil beskjæring i nettleseren).
+
 **Test:** åpne galleriet, klikk gjennom lightbox, sjekk at ingen bilde mangler eller viser feil `alt`-tekst i devtools.
 
 ---
@@ -121,6 +123,8 @@ Alt brødtekst-innhold under er **config**, i `site-data.js`, og appliseres auto
 | **`booking.formspreeEndpoint`** | `site-data.js` (`booking.formspreeEndpoint`) | ✅ **Fikset i Fase 2.4 — nå config** | Var tidligere en hardkodet konstant (`FORMSPREE_ENDPOINT`) i `script.js`. Flyttet inn i `booking`-blokken i `site-data.js`, rett ved siden av resten av booking-configen — samme fil du uansett redigerer for pris/datoer. `submitBookingRequest()` har fått en fail-loud guard: er feltet tomt, kastes en tydelig feil (`"Booking requests are not configured yet — set booking.formspreeEndpoint in site-data.js."`) i stedet for å sende mot en tom/manglende URL. **Fortsatt like kritisk å faktisk sette riktig verdi per property** — flyttingen fjerner ikke det steget, bare gjør en glemt/tom verdi synlig med en gang i stedet for stille feilsendte forespørsler. Opprett et nytt Formspree-skjema for den nye propertyen og lim inn URL-en her før lansering. |
 | `booking.numberLocales` | `site-data.js` (`booking`-blokken) | Config | `{ en: "en-US", th: "th-TH" }` — kun brukt til tallformatering (gruppe-/desimalskilletegn i prisvisning), ikke valutasymbolet (det er `currency` over). Legger den nye propertyen til et tredje språk (utenfor scope for en vanlig klone, se seksjon 9), trenger den én ny nøkkel her — ellers ingen endring nødvendig. Manglende/ugyldig verdi faller trygt tilbake til `en-US`. |
 | `integrations.airbnb` / `integrations.bookingCom` | `site-data.js:173–176` | Ubrukte placeholders | Ingen kode leser disse ennå — forberedt plass for Fase 3 (backend) |
+
+**⚠️ `currency` er en ren tekst-suffiks, ikke lokalisert valutaformatering (funn fra Property #2-valideringsøkten, 2026-08-21).** `formatMoney()` (`booking-logic.js:239–252`) setter alltid `currency`-verdien **etter** det formaterte beløpet, f.eks. `"10 000 THB"`. Det finnes ingen støtte for et valutasymbol foran beløpet (`$180`, `€150`) eller ekte ISO 4217-lokalisert formatering — bekreftet direkte i koden. Fungerer helt fint for en ny THB-property, eller enhver valuta man aksepterer som suffiks (`"180 USD"`); **ikke anta** at å sette `currency: "USD"` gir `$`-prefiks — det krever en faktisk kodeendring i `formatMoney()`.
 
 **Test (obligatorisk, ikke valgfritt):** etter kloning, **send en faktisk test-bestillingsforespørsel** gjennom hele flyten (velg datoer → Check Availability → Request to Book → fyll skjema → send) og verifiser at den faktisk lander i **den nye propertyens** Formspree-innboks/e-post — ikke i den gamle. Dette er den eneste måten å fange en glemt `booking.formspreeEndpoint`-oppdatering på (den nye fail-loud guarden fanger kun *tom* verdi, ikke en verdi som ved en feil peker til feil property).
 
@@ -226,4 +230,4 @@ Gjenstående, fortsatt kode (bevisst — se begrunnelse per punkt):
 
 ---
 
-*Sist verifisert direkte mot koden: 2026-08-20 (inkl. Fase 2.4 config cleanup). Denne listen dokumenterer repoets faktiske oppførsel på dette tidspunktet — linjenumre kan flytte seg ved senere endringer.*
+*Sist verifisert direkte mot koden: 2026-08-20 (inkl. Fase 2.4 config cleanup), med et addendum 2026-08-21 (Property #2-valideringsøkt — hypotetisk ny property bygget og validert mot schemaet uten kodeendring; to nye funn lagt til i seksjon 3 og 6, se også [full-audit.md](.claude/full-audit.md) "Nye funn fra Property #2-valideringsøkten"). Denne listen dokumenterer repoets faktiske oppførsel på dette tidspunktet — linjenumre kan flytte seg ved senere endringer.*
