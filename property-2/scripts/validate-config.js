@@ -12,6 +12,16 @@
 // This is a development/quality tool only. It is never loaded by index.html
 // and has no effect on the live site.
 //
+// After the schema itself passes, this also checks — using only Node's
+// built-in `fs`, no new dependency — that the image files referenced by
+// heroImage, aboutImage.src and each gallery[].src actually exist on disk,
+// resolved relative to this property's own root (the directory this script
+// lives one level under, via __dirname — same convention sync-seo.js uses,
+// so this works unmodified from inside a copied property/ directory too).
+// This only confirms the files exist, not that their pixel dimensions match
+// the gallery[].width/height declared in config — that would require
+// decoding image headers, a separate, larger check left for later.
+//
 // Usage:
 //   node scripts/validate-config.js                  Validates site-data.js
 //   node scripts/validate-config.js --input <file>    Validates a given JSON
@@ -20,8 +30,9 @@
 //                                                      to check negative cases)
 //
 // Exit codes:
-//   0  valid — data matches the schema
-//   1  invalid — ajv-cli found schema violations (see output)
+//   0  valid — data matches the schema, and referenced image files exist
+//   1  invalid — ajv-cli found schema violations, OR a referenced image
+//      file does not exist on disk (see output for which)
 //   2  could NOT validate at all (npm/npx unavailable, no network, schema
 //      or input file missing, site-data.js failed to load, ...). This is
 //      deliberately a different code than 1: a caller must never treat a
@@ -62,6 +73,44 @@ function loadPropertyConfigFromSiteData() {
     return sandbox.window.propertyConfig;
 }
 
+// Collects { field, value } for every image path in the config that this
+// check covers. Skips absent/optional fields (aboutImage is optional) and
+// non-string/empty values — the schema itself is responsible for rejecting
+// those; this only runs once the schema has already passed.
+function collectImagePaths(config) {
+    const paths = [];
+
+    if (config && typeof config.heroImage === "string" && config.heroImage) {
+        paths.push({ field: "heroImage", value: config.heroImage });
+    }
+
+    if (config && config.aboutImage && typeof config.aboutImage.src === "string" && config.aboutImage.src) {
+        paths.push({ field: "aboutImage.src", value: config.aboutImage.src });
+    }
+
+    if (config && Array.isArray(config.gallery)) {
+        config.gallery.forEach((item, index) => {
+            if (item && typeof item.src === "string" && item.src) {
+                paths.push({ field: `gallery[${index}].src`, value: item.src });
+            }
+        });
+    }
+
+    return paths;
+}
+
+// Returns a human-readable line per missing file, empty array if all exist.
+// Paths starting with a protocol (http(s)://, //) are skipped rather than
+// checked — the config format is a local relative path today, but this
+// avoids a false failure if that ever changes.
+function checkImagesExist(config) {
+    return collectImagePaths(config)
+        .filter(({ value }) => !/^(https?:)?\/\//i.test(value))
+        .map(({ field, value }) => ({ field, value, resolved: path.join(ROOT, value) }))
+        .filter(({ resolved }) => !fs.existsSync(resolved))
+        .map(({ field, value, resolved }) => `${field} = "${value}" (looked for ${resolved})`);
+}
+
 function parseArgs(argv) {
     const args = { input: null };
     for (let i = 0; i < argv.length; i++) {
@@ -83,6 +132,7 @@ function main() {
     let dataPath;
     let tmpFile = null;
     let sourceLabel;
+    let config; // kept around (regardless of source) for the image-existence check below
 
     if (args.input) {
         dataPath = path.resolve(args.input);
@@ -90,8 +140,12 @@ function main() {
             fail(`Input file not found: ${dataPath}`);
         }
         sourceLabel = path.relative(ROOT, dataPath);
+        try {
+            config = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+        } catch (error) {
+            fail(`Could not parse ${dataPath} as JSON: ${error.message}`);
+        }
     } else {
-        let config;
         try {
             config = loadPropertyConfigFromSiteData();
         } catch (error) {
@@ -122,7 +176,13 @@ function main() {
     if (result.stderr) process.stderr.write(result.stderr);
 
     if (result.status === 0) {
-        console.log("[validate-config] VALID — data matches schema/property-config.schema.json.");
+        const missingImages = checkImagesExist(config);
+        if (missingImages.length > 0) {
+            console.error("[validate-config] INVALID — schema passed, but referenced image file(s) do not exist on disk:");
+            missingImages.forEach(line => console.error(`[validate-config]   - ${line}`));
+            process.exit(1);
+        }
+        console.log("[validate-config] VALID — data matches schema/property-config.schema.json, and all referenced image files exist on disk.");
         process.exit(0);
     }
 

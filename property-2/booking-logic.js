@@ -255,6 +255,22 @@ function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// --- Localized text helpers ------------------------------------------------
+// Resolves a per-language value object (e.g. { en: "Villa", th: "" }) to a
+// single display string. An explicit empty string in `language` is treated
+// the same as a missing key — both fall through to `fallbackLanguage` —
+// because site-data.js legitimately ships fields like seo.title.th: "" to
+// mean "no translation yet, show English" (see localizedTextOptional in
+// schema/property-config.schema.json). getText() in script.js is a thin
+// wrapper around this, kept here so the fallback logic is testable without
+// a DOM. t() in script.js applies the same "" -> fallback semantics inline,
+// since its dict-of-dicts shape (translations[lang][key]) doesn't fit this
+// per-value signature without restructuring how translations.js is loaded.
+function resolveLocalizedText(value, language, fallbackLanguage) {
+    if (typeof value === "string") return value;
+    return value?.[language] || value?.[fallbackLanguage] || "";
+}
+
 // Node test entry point only — a classic <script> has no `module` global,
 // so this block never runs in the browser.
 if (typeof module !== "undefined" && module.exports) {
@@ -280,6 +296,7 @@ if (typeof module !== "undefined" && module.exports) {
         parseMaximumGuests,
         calculateBookingPrice,
         formatMoney,
-        isValidEmail
+        isValidEmail,
+        resolveLocalizedText
     };
 }

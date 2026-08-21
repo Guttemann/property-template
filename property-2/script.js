@@ -64,8 +64,7 @@ const locationHighlightsGrid = document.getElementById("locationHighlightsGrid")
 let observer;
 
 function getText(value) {
-    if (typeof value === "string") return value;
-    return value?.[currentLanguage] || value?.en || "";
+    return resolveLocalizedText(value, currentLanguage, "en");
 }
 
 function iconSvg(name) {
@@ -519,9 +518,13 @@ function formatDisplayDate(date) {
 }
 
 // --- Translation helper (supports {n}-style placeholders) -----------------
+// Uses the same "empty string = not translated yet, fall back" semantics as
+// getText()/resolveLocalizedText() (booking-logic.js) — previously this used
+// `??`, which would have rendered a deliberately empty translation as blank
+// instead of falling back to English, inconsistent with getText().
 function t(key, params) {
     const dict = translations[currentLanguage] || translations.en;
-    let text = dict[key] ?? translations.en[key] ?? "";
+    let text = dict[key] || translations.en[key] || "";
     if (params) {
         Object.keys(params).forEach(param => {
             text = text.replace(`{${param}}`, params[param]);
