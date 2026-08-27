@@ -193,6 +193,8 @@ Malen støtter i dag **nøyaktig to språk: `en` og `th`** — hardkodet flere s
 
 ## 10. Deployment/verification
 
+**Autoritativ, steg-for-steg deploy-prosess: [DEPLOYMENT.md](DEPLOYMENT.md)** (Netlify-runbook + go-live-sjekkliste). Punktene under er verifikasjonspunktene den bygger på — behold dem, men følg rekkefølgen i `DEPLOYMENT.md`.
+
 - [ ] Ingen build-steg — rene statiske filer, deploy `index.html` + `style.css` + `script.js` + `booking-logic.js` + `site-data.js` + `translations.js` + `assets/` + `robots.txt` + `sitemap.xml` som de er. `booking-logic.js` er **runtime**, ikke bare test-infrastruktur — `index.html` laster den som en vanlig `<script>` før `script.js`, og siden er ødelagt uten den. `tests/`, `schema/` og `scripts/validate-config.js` (og `node --test` selv) er derimot dev-only og trenger **ikke** deployes.
 - [ ] Lokal forhåndsvisning: `.claude/launch.json` kjører `python -m http.server 5173` — ingen property-spesifikk konfigurasjon her
 - [ ] Kjør `node scripts/sync-seo.js` **etter** siste endring i `site-data.js`, **før** deploy (se seksjon 8)

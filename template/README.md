@@ -104,10 +104,20 @@ Once the real domain is known: set `seo.siteUrl` in `site-data.js`, re-run
 
 ## Deploy
 
-Static files — no build step. Deploy `index.html`, `style.css`, `script.js`,
-`booking-logic.js`, `site-data.js`, `translations.js`, `assets/`, `robots.txt`
-and `sitemap.xml` as-is. `scripts/`, `schema/` and `tests/` are dev-only and
-do not need to be deployed.
+Hosting is **Netlify**, static files, no build step. `netlify.toml` (included
+in this seed) points Netlify's publish directory at the repo root, so
+`index.html`, `style.css`, `script.js`, `booking-logic.js`, `site-data.js`,
+`translations.js`, `assets/`, `robots.txt` and `sitemap.xml` are served as-is.
+`scripts/`, `schema/` and `tests/` are dev-only — harmless if served, not used
+at runtime.
+
+Do **not** add a `package.json` to a customer repo — Netlify would then run
+`npm install` on every deploy. The dev tooling (`scripts/validate-config.js`,
+`scripts/sync-seo.js`, `node --test`) is local-only.
+
+The full step-by-step Netlify runbook and go-live checklist live in
+`DEPLOYMENT.md` in the `property-template` project (not copied into this seed,
+same as `PROPERTY-CHECKLIST.md`).
 
 ---
 
