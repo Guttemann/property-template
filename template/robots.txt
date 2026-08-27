@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Add "Sitemap: https://yourdomain.com/sitemap.xml" here once this property
+# has a real domain (see propertyConfig.seo.siteUrl in site-data.js).
