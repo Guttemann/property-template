@@ -543,7 +543,7 @@ Ingen kode er endret som del av denne gjennomgangen. Alle linjereferanser peker 
 
 ## Implementation Status
 
-*Sist oppdatert: 2026-08-21, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i flere økter (inkl. config loading/error handling i `script.js`, en målt srcset/sizes-kost/gevinst-analyse, §10 sitt touch-mål-funn fikset og verifisert i nettleser på desktop + mobil, og — nyest — en Property #2-valideringsøkt 2026-08-21 som testet en hypotetisk ny property mot dagens schema/config-lag uten å endre kode). Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
+*Sist oppdatert: 2026-08-27 — **Deployment Batch 1** lagt til og manuelt verifisert med en ekte Netlify sandbox-deploy (se egen seksjon "Deployment Batch 1 — Netlify-runbook + sandbox-deploy verifisert" under). Mellom forrige oppdatering og denne ble også `7e26f9c` (GA4-ID-fiks for Celine), `5a80636` (`/template/`-seed opprettet) og `33f9b69` (`PROPERTY-INTAKE-BRIEF.md`) committet uten at de rørte denne filen — de er lagt inn i commit-listen under for kontinuitet. Forrige oppdatering: 2026-08-21, basert på `git log 23921bd..HEAD` og en direkte gjennomgang av dagens kode i flere økter (inkl. config loading/error handling i `script.js`, en målt srcset/sizes-kost/gevinst-analyse, §10 sitt touch-mål-funn fikset og verifisert i nettleser på desktop + mobil, og en Property #2-valideringsøkt 2026-08-21 som testet en hypotetisk ny property mot dagens schema/config-lag uten å endre kode). Alle linjereferanser i audit-en over er fra commit `23921bd` og kan ha flyttet seg siden — dette punktet dokumenterer kun *hvorvidt* et funn er adressert, ikke oppdaterte linjenumre. Et punkt er kun merket ferdig når det er verifisert direkte mot koden slik den står nå, ikke antatt fra commit-meldinger alene.*
 
 Commits siden audit-punktet (`23921bd`), eldst først:
 
@@ -565,6 +565,10 @@ Commits siden audit-punktet (`23921bd`), eldst først:
 - *(uncommitted, denne økten)* — **Fase 2.4: config cleanup / døde felt.** Kontrollert batch, ingen refaktorering utover selve funnene. `booking.formspreeEndpoint` (var hardkodet `FORMSPREE_ENDPOINT` i script.js), About-seksjonens bilde (nytt `aboutImage.src`/`aboutImage.alt`) og hero-bildets `alt`-tekst (nytt `heroImageAlt`) flyttet til `site-data.js`, koblet via `data-property-*`-mønsteret som allerede fantes for resten av innholdet. `seo.googleSiteVerification` lagt til i `seo`-blokken og bakt inn av `scripts/sync-seo.js` sammen med resten av SEO-blokken, i stedet for en frittstående hardkodet `<meta>`-tag. Hero preload-lenken og favicon-filnavnet ble **bevisst latt være** hardkodet (se "Bevisst hardkodet" under). `locationBody2` og `photosUrl` ble vurdert for sletting (begge uten HTML-konsument) men **bevisst beholdt** — de inneholder ekte, utfylt property-innhold, ikke placeholder-tekst, og en cleanup-batch skal ikke destruere reelt innhold; begge er nå kommentert i `site-data.js` som bevisst beholdt. Se "Fase 2.4" under for full detalj.
 - *(uncommitted, denne økten)* — **Fase 2.5: JSON Schema for `propertyConfig`.** Ny fil [schema/property-config.schema.json](../schema/property-config.schema.json) (JSON Schema Draft-07) og [scripts/validate-config.js](../scripts/validate-config.js), pluss 6 nye tester i [tests/schema-validation.test.js](../tests/schema-validation.test.js). Ingen runtime-kode rørt, ingen `package.json`/npm-avhengighet innført — validering kjøres via pinnet `npx ajv-cli@5.0.0` (Draft-07 er dets default), en ekte standardvalidator i stedet for en selvbygget schema-motor. Dagens `site-data.js` validert som gyldig; 5 negative cases (manglende required-felt, feil datatype, feil gallery-struktur, `minimumStay: 0`, `booking.enabled: true` + tom `formspreeEndpoint`) validert som forventet ugyldige. Se "Fase 2.5" under for full detalj.
 - *(uncommitted, ny økt, 2026-08-21)* — **Property #2 template validation.** Ren analyse-/testøkt, ingen kodeendring, ingen ny property opprettet eller committet. Kartla alle property-spesifikke steder utenfor `site-data.js` på nytt og klassifiserte dem (🔴 kode / 🟡 dokumentert unntak / 🟢 config / ⚪ dødt). Bygget en fullstendig hypotetisk Property #2-config (nytt navn, nye bilder, annen pris/kapasitet/blocked dates/kontaktdata/Formspree-endpoint/domene, `currency: "USD"`) og validerte den via `node scripts/validate-config.js --input ...` → **VALID**, uten noen kodeendring. Kjørte `node --test` på nytt på uendret `site-data.js` → 57/57 grønne. To nye funn, se "Nye funn fra Property #2-valideringsøkten" under Fase 2.5.
+- `7e26f9c` — fix: correct GA4 measurement ID for Celine (Property #1, `site-data.js`, 1 linje)
+- `5a80636` — Add /template/ as a clean, self-contained property seed (ny `template/`-mappe; rot-property og `property-2/` ikke rørt)
+- `33f9b69` — Add client-facing Property Intake Brief (`PROPERTY-INTAKE-BRIEF.md`, ny — kun dokumentasjon)
+- `4768021` — **Deployment Batch 1: Netlify deploy-runbook.** `DEPLOYMENT.md` (ny), `template/netlify.toml` (ny), `template/README.md` (Deploy-seksjon), `PROPERTY-CHECKLIST.md` seksjon 10. Kun dokumentasjon + én config-fil, ingen runtime-/template-endring. Manuelt verifisert 2026-08-27 med en ekte Netlify sandbox-deploy — se "Deployment Batch 1 — Netlify-runbook + sandbox-deploy verifisert" under.
 
 ### Fase 0 — Gjør produktet reelt
 
@@ -796,6 +800,40 @@ Liten, avgrenset batch bestilt direkte etter en post-Property #2-review — ikke
 
 §06 sitt 🟡-funn ("Inkonsekvent fallback: `||` vs `??`") og Fase 2 sin opprinnelige 5-punktsliste (punkt 4, den delen som gjaldt `getText()`/`t()`) er dermed lukket. "Nye funn fra Property #2-valideringsøkten" sitt bilde-eksistens-funn er delvis lukket (eksistens sjekkes, dimensjoner fortsatt ikke). "Property #2 bygget for reelt" sitt `node --test`-funn er nå dokumentert som en fast konvensjon i stedet for en løs observasjon, med den nye asymmetri-nyansen lagt til.
 
+### Deployment Batch 1 — Netlify-runbook + sandbox-deploy verifisert (2026-08-27)
+
+Liten, avgrenset batch bestilt etter at frontend-grunnmuren og `/template/`-seeden var på plass — ikke en roadmap-fase. Den opprinnelige audit-roadmapen (Fase 0–4) dekket aldri *hvordan* en ferdig property faktisk kommer på nett; denne batchen lukker det hullet på dokumentasjons-/konfigurasjonsnivå, uten å røre runtime- eller template-funksjonalitet.
+
+**Lagt til (commit `4768021`, kun dokumentasjon + én config-fil):**
+
+- ✅ **[DEPLOYMENT.md](../DEPLOYMENT.md)** (ny) — den autoritative, steg-for-steg deploy-prosessen: én property = ett privat repo seedet fra `template/` (aldri `git clone`), Netlify som host (publish = repo-rot, ingen build), preview-deploys i stedet for eget staging-miljø, fem pre-deploy-sjekker (`validate-config.js`, `sync-seo.js`, `node --test`, browser-smoke-test, leftover-content-scan), Netlify-tilkobling, klient-review via `*.netlify.app`, og domene/go-live med en full go-live-sjekkliste. `PROPERTY-CHECKLIST.md` og `template/README.md` deferer nå til denne for rekkefølgen på operasjonene.
+- ✅ **[template/netlify.toml](../template/netlify.toml)** (ny) — `[build] publish = "."`, ingen build-kommando. Ligger i seeden, så den lander i hvert nytt property-repo automatisk.
+- ✅ **[template/README.md](../template/README.md)** — «Deploy»-seksjonen skrevet om: Netlify eksplisitt, `netlify.toml` forklart, og en advarsel om å **ikke** legge `package.json` i et kunde-repo (Netlify ville da kjørt `npm install` ved hver deploy; dev-verktøyene er lokale).
+- ✅ **[PROPERTY-CHECKLIST.md](../PROPERTY-CHECKLIST.md) seksjon 10** — kryssreferanse til `DEPLOYMENT.md`; de eksisterende punktene beholdt som verifikasjonspunkter under runbookens rekkefølge.
+
+**Manuelt verifisert med en ekte Netlify-deploy (2026-08-27):**
+
+En separat, disposabel test — *ikke* `property-template`, *ikke* Celine eller noen reell kunde-property:
+
+- Nytt, privat GitHub-repo `property-sandbox` (helt adskilt fra `property-template`), seedet **kun** med innholdet av `template/` lagt i repo-roten (ingen `template/`-mappe, ingen `.git`-historikk fra dette repoet, ingen kundedata). Initial-commit `81f5c96`, pushet til GitHub.
+- Deployet GitHub → Netlify. Live-siden rendrer korrekt over HTTPS.
+- Verifisert manuelt: GitHub→Netlify-deploy fungerer; siden rendrer; bilder, CSS og JS lastes; ingen åpenbare nettleserfeil under manuell testing.
+- `/robots.txt` nåbar, med den forventede template-placeholderen for den fremtidige `Sitemap:`-linjen (kommentaren som peker på `propertyConfig.seo.siteUrl`).
+- `/sitemap.xml` nåbar og korrekt tom (`<urlset>` uten `<url>`), fordi `seo.siteUrl` ikke er satt for sandboxen — nøyaktig oppførselen `DEPLOYMENT.md` Steg 2 beskriver som forventet før domene-steget.
+- `property-template` og alle reelle properties uendret — verifisert.
+
+Dette er første gang deploy-halvdelen av Fase 1 punkt 5 (SEO-hygiene: `robots.txt`/`sitemap.xml`) er kjørt ende-til-ende på en ekte host, ikke bare lokal `python -m http.server`.
+
+**Bevisst ikke med i denne batchen** (dokumentert i `DEPLOYMENT.md` sin egen «What this setup deliberately does not include», ikke glemt):
+
+- Ingen CI / GitHub Actions — pre-deploy-sjekkene kjøres for hånd inntil den manuelle prosessen har bevist seg på reelle properties.
+- Intet eget staging-miljø — Netlify preview-URL-er dekker det.
+- Ingen `property-seed`-template-repo på GitHub ennå — «Use this template» som gjør den rene kopieringen er planlagt, men til da kopieres `template/`-innholdet for hånd (slik sandbox-testen gjorde).
+- Ingen consent-/cookie-banner — akseptabelt for en Thailand-property, påkrevd før markedsføring mot EU/UK-besøkende med analytics på.
+- De eksakte Netlify-dashboard-stegene for domene/DNS/HTTPS er i `DEPLOYMENT.md` Steg 6 markert som noe som pinnes ved første reelle go-live.
+
+Ingen runtime-kode (`script.js`/`booking-logic.js`/`translations.js`/`site-data.js`), intet schema og ingen template-`index.html` er rørt i denne batchen.
+
 ### Fase 3 — Backend
 
 Ikke startet. Repoet inneholder fortsatt ingen server-/backend-kode — kun statiske filer (pluss en lokal `python -m http.server` for forhåndsvisning i `.claude/launch.json`). `blockedDates` er fortsatt en hånd-redigert liste i `site-data.js` uten reservasjons-lås.
@@ -830,6 +868,8 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
 
 **Fase 2 er nå fullstendig ferdig.** Den ene gjenstående resten — `getText()` sin `||` vs. `t()` sin `??`-inkonsekvens (§06) — ble rettet i en egen, liten opprydningsbatch samme dag (2026-08-21), etter Property #2-reviewen. Se "Opprydningsbatch etter Property #2-review" under.
 
+**Deployment:** Deployment Batch 1 (2026-08-27) la til `DEPLOYMENT.md` + `template/netlify.toml` (og deploy-avsnittene i `template/README.md` / `PROPERTY-CHECKLIST.md`) og ble verifisert med en ekte, disposabel Netlify sandbox-deploy — eget `property-sandbox`-repo, *ikke* `property-template` eller noen kunde-property; commit `81f5c96`; live over HTTPS; `/robots.txt` og `/sitemap.xml` oppførte seg som forventet. Kun dokumentasjon/konfig — ingen runtime- eller template-endring. Se "Deployment Batch 1 — Netlify-runbook + sandbox-deploy verifisert" under.
+
 **Bevisst utsatt** (ikke gjenstående arbeid, men vurderinger gjort med fullt kost/gevinst-grunnlag):
 
 - **Canonical-tag og JSON-LD strukturert data.** Canonical er allerede kodeferdig i `sync-seo.js` og trenger ingen ny kode — kun at `seo.siteUrl` fylles inn med et ekte domene. JSON-LD ble vurdert og bevisst holdt utenfor: et `LodgingBusiness`-skjema med feil/manglende felt (pris, adresse, bilder som endrer seg per property) er nettopp den typen "bygd fordi det var mulig" audit-en advarer mot i §19, og gir ingen reell verdi før siden faktisk er indekserbar på et ekte domene. Begge bør tas i samme omgang som §12 sitt gjenværende 🟠-funn (separate URL-er/hreflang for thai) — når domenet er satt.
@@ -847,8 +887,8 @@ Commit `4bf7ee3` og `c281c71` dekker til sammen mesteparten av §11 sitt "Divers
   Ikke en glemt revisjon — en bevisst prioritering: kost (evigvarende manuell multiplikator per bilde per property) vurdert høyere enn gevinst (moderat, mobil-only, ikke-LCP, allerede delvis dempet av lazy loading) med kun én property i drift.
 
 **Neste naturlige steg** (i prioritert rekkefølge, følger roadmapens egen logikk):
-1. ✅ **Ferdig, opprydningsbatchen 2026-08-21** — den siste resten av Fase 2, `||`/`??`-inkonsekvensen i `getText()`/`t()` (§06), er rettet. Se "Opprydningsbatch etter Property #2-review" over. Fase 2 sin opprinnelige 5-punktsliste er dermed **fullstendig ferdig**.
-2. Når `siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), vurder JSON-LD og hreflang/separate URL-er for thai på nytt.
+1. ✅ **Ferdig** — (a) opprydningsbatchen 2026-08-21 rettet den siste resten av Fase 2, `||`/`??`-inkonsekvensen i `getText()`/`t()` (§06); Fase 2 sin opprinnelige 5-punktsliste er dermed **fullstendig ferdig**. (b) **Deployment Batch 1** (2026-08-27) la til Netlify deploy-runbooken og ble verifisert med en ekte throwaway sandbox-deploy. Se "Opprydningsbatch etter Property #2-review" og "Deployment Batch 1 — Netlify-runbook + sandbox-deploy verifisert" over.
+2. **Første reelle go-live** (neste deployment-milepæl): følg [DEPLOYMENT.md](../DEPLOYMENT.md) Steg 1–6 ende-til-ende for en faktisk property. Når `seo.siteUrl` settes til et ekte domene: kjør `node scripts/sync-seo.js` på nytt (aktiverer canonical + fyller `sitemap.xml`), legg til `Sitemap:`-linjen i `robots.txt`, og vurder JSON-LD og hreflang/separate URL-er for thai på nytt. De eksakte Netlify-dashboard-stegene for domene/DNS/HTTPS pinnes i runbooken ved denne anledningen.
 3. Når property #2 er reell, eller et enkelt lokalt resize-script er verdt å innføre: gjenåpne `srcset`/`sizes`-vurderingen over — grunnlaget (mål, breakpoints, filstørrelser) er allerede dokumentert her og trenger ikke gjøres på nytt.
 4. Når `site-data.js` klones for en ny property: kjør `node scripts/validate-config.js` (Fase 2.5) før `node --test`/smoke-test i sjekklisten — det er nøyaktig den situasjonen schemaet ble bygget for. Siden opprydningsbatchen 2026-08-21 bekrefter en `VALID`-kjøring nå at bildefilene faktisk finnes på disk — men bekrefter fortsatt **ikke** at `width`/`height` stemmer med filens faktiske pikseldimensjoner (se "Opprydningsbatch etter Property #2-review" over). Den manuelle smoke-testen dekker fortsatt det gjenværende gapet.
 5. Hvis Property #2 (eller en senere property) faktisk trenger valutasymbol foran beløpet (`$`/`€`) i stedet for dagens suffiks-format (`"180 USD"`): dette krever en reell kodeendring i `formatMoney()` (`booking-logic.js`), ikke bare en config-verdi — se "Nye funn fra Property #2-valideringsøkten" over.
