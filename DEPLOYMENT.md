@@ -9,7 +9,9 @@ order of operations.
 ## Model
 
 - **One property = one private Git repository**, created fresh from the
-  `template/` seed. Never `git clone` — history carries other properties' IDs,
+  `property-seed` template repo (GitHub "Use this template") or, failing that,
+  a hand copy of the `template/` seed. Never `git clone` `property-template` or
+  another customer repo — that history carries other properties' IDs,
   endpoints and tokens.
 - **Netlify** is the hosting/deploy platform. Publish directory = repo root,
   no build command. `template/netlify.toml` sets this, so it lands in every
@@ -35,16 +37,27 @@ Per property, before you start:
 
 ## Step 1 — Create the property repository
 
-1. Create a new **empty, private** repository, e.g. `property-celine-cha-am`.
-2. Copy the **contents of `template/`** (not the folder itself) into it. Do
-   **not** `git clone` this repo or any customer repo.
-3. `git init`, one initial commit, push.
+**Primary — GitHub "Use this template".** From
+`https://github.com/Guttemann/property-seed`, click **Use this template →
+Create a new repository**: owner `Guttemann`, name `property-<slug>` (e.g.
+`property-celine-cha-am`), visibility **Private**, "Include all branches"
+unchecked. GitHub creates the repo with a single fresh commit and no shared
+history — no other property's IDs, endpoints or tokens come with it. Then
+`git clone` that new repo and work in it.
 
-`netlify.toml` is part of the seed and lands in the new repo automatically.
+**Fallback — manual bootstrap** (only if not using GitHub, or `property-seed`
+is unavailable): create a new **empty, private** repo, copy the **contents of
+`template/`** (not the folder itself) into it, then `git init`, one initial
+commit, push. Never `git clone` `property-template` or another customer repo.
 
-*A dedicated `property-seed` GitHub template repository (so "Use this
-template" does the clean copy) is planned but not set up yet — until then,
-copy `template/` contents by hand.*
+`netlify.toml` is part of the seed, so it lands in the new repo automatically
+either way.
+
+*The `property-seed` template repository
+(`https://github.com/Guttemann/property-seed`) is live and verified: "Use this
+template" produces an independent repo with a one-commit history, the seed's
+exact committed file tree, and passing `validate-config.js` / `node --test`
+(checked 2026-08-29 via a throwaway `property-seed-verify`).*
 
 ---
 

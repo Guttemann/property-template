@@ -1,13 +1,13 @@
 # Property template — clean seed
 
-This folder is the **canonical clean starting point** for a new property site.
-It contains the full frontend (engine + config + placeholder content) with
-**no real property, customer, contact, analytics, booking or SEO data**, and
-with booking and analytics disabled.
+This is the **canonical clean starting point** for a new property site: the
+full frontend (engine + config + placeholder content) with **no real
+property, customer, contact, analytics, booking or SEO data**, and with
+booking and analytics disabled.
 
-Property #1 lives at the repo root and Property #2 in `property-2/`. Neither is
-a safe thing to copy from — both hold live customer data. **Always start a new
-property from this folder.**
+**Always base a new property on this clean seed.** Never create one by copying
+an existing live property — those repositories hold real customer data
+(contact details, analytics IDs, Formspree endpoints).
 
 ---
 
@@ -33,19 +33,25 @@ property from this folder.**
 
 ### 1. New repository (no history carry-over)
 
-Create a **brand-new, empty git repo** for the property and copy the
-**contents of this folder** into it as the repo root:
+**Primary path — GitHub "Use this template".** On the `property-seed`
+repository, click **Use this template → Create a new repository**, name it
+`property-<slug>`, and set it **Private**. GitHub creates the new repo with a
+single fresh commit and no shared history — exactly what you want. Then
+`git clone` *that* new repo and continue from step 2.
+
+**Fallback — manual bootstrap** (used when `property-seed` does not exist yet,
+or when not using GitHub). Create a brand-new, empty git repo and copy the
+**contents of this seed** into it as the repo root:
 
 ```bash
-mkdir property-3 && cd property-3
+mkdir property-<slug> && cd property-<slug>
 git init
-# copy the contents of template/ (not the folder itself) into here
+# copy the contents of this seed (not the folder itself) into here
 ```
 
-Do **not** `git clone` this repo or a customer repo — that drags the whole
-commit history (which contains other properties' IDs, endpoints and tokens)
-into the new repo. If you use GitHub, the "template repository" feature does
-the same thing cleanly (it starts the new repo with a single fresh commit).
+Either way, do **not** `git clone` `property-template` or an existing customer
+repo — that drags the whole commit history (which contains other properties'
+IDs, endpoints and tokens) into the new repo.
 
 ### 2. Fill in `site-data.js`
 
@@ -127,8 +133,8 @@ same as `PROPERTY-CHECKLIST.md`).
   messages). A few strings still say "villa" / "Thailand" (`heroEyebrow`,
   `galleryTitle`, `availableTitle`, `footerTemplate`). Adjust per property if
   it isn't a Thai villa.
-- The repo root's `PROPERTY-CHECKLIST.md` has a much more detailed,
-  field-by-field walkthrough of the same steps.
+- `PROPERTY-CHECKLIST.md` in the `property-template` repo has a much more
+  detailed, field-by-field walkthrough of the same steps.
 - Before going live, search the new repo for leftover `TODO:` markers and for
   any other property's name, IDs or endpoints — nothing from another property
   should appear anywhere.
